@@ -59,8 +59,9 @@ export default async function PowerRankingsPage({
         <div>
           <h1 className="text-2xl font-extrabold">Power Rankings</h1>
           <p className="text-sm text-muted">
-            A composite score blending win %, scoring average, recent form (last 3 games), and
-            strength of schedule faced — not just wins and losses.
+            A composite score blending win %, scoring average, and strength of schedule faced —
+            not just wins and losses. Last-3-games form is shown for reference but isn&apos;t
+            part of the score.
           </p>
         </div>
         <SeasonPicker seasons={seasons} selected={season} basePath="/power-rankings" />

@@ -14,7 +14,10 @@ export interface PowerRankingRow {
   record: string; // "W-L-T" through this week
 }
 
-const WEIGHTS = { winPct: 0.35, avgPoints: 0.35, recentForm: 0.2, scheduleStrength: 0.1 };
+// Recent form (last 3 games) is shown in the table but deliberately not
+// weighted into the score — the whole point of a power ranking is the
+// full-season picture, not a hot/cold streak from the last few weeks.
+const WEIGHTS = { winPct: 0.45, avgPoints: 0.45, scheduleStrength: 0.1 };
 
 function normalize(value: number, min: number, max: number): number {
   if (max - min < 1e-9) return 0.5;
@@ -24,8 +27,9 @@ function normalize(value: number, min: number, max: number): number {
 /**
  * Composite power ranking through a given week of a season (defaults to the
  * latest week with played games). Blends win percentage, scoring average,
- * recent form (last up-to-3 games), and strength of schedule faced so far —
- * not just raw win/loss record.
+ * and strength of schedule faced so far — not just raw win/loss record.
+ * Recent form (last up-to-3 games) is computed and shown alongside the
+ * ranking but doesn't feed the score itself.
  */
 export async function computePowerRankings(season: number, throughWeek?: number): Promise<PowerRankingRow[]> {
   const allGames = (await getRegularSeasonGameResults()).filter(
@@ -44,7 +48,7 @@ export async function computePowerRankings(season: number, throughWeek?: number)
     byTeam.set(g.teamId, list);
   }
 
-  const rows: (PowerRankingRow & { _raw: { winPct: number; avgPoints: number; recentForm: number; scheduleStrength: number } })[] = [];
+  const rows: (PowerRankingRow & { _raw: { winPct: number; avgPoints: number; scheduleStrength: number } })[] = [];
 
   for (const [teamId, teamGames] of byTeam) {
     teamGames.sort((a, b) => a.week - b.week);
@@ -73,19 +77,17 @@ export async function computePowerRankings(season: number, throughWeek?: number)
       recentFormAvg: recentForm,
       scheduleStrength,
       record: `${wins}-${losses}${ties ? `-${ties}` : ''}`,
-      _raw: { winPct, avgPoints, recentForm, scheduleStrength },
+      _raw: { winPct, avgPoints, scheduleStrength },
     });
   }
 
   const winPcts = rows.map((r) => r._raw.winPct);
   const avgPointsArr = rows.map((r) => r._raw.avgPoints);
-  const recentFormArr = rows.map((r) => r._raw.recentForm);
   const scheduleArr = rows.map((r) => r._raw.scheduleStrength);
 
   const ranges = {
     winPct: [Math.min(...winPcts), Math.max(...winPcts)] as const,
     avgPoints: [Math.min(...avgPointsArr), Math.max(...avgPointsArr)] as const,
-    recentForm: [Math.min(...recentFormArr), Math.max(...recentFormArr)] as const,
     scheduleStrength: [Math.min(...scheduleArr), Math.max(...scheduleArr)] as const,
   };
 
@@ -93,7 +95,6 @@ export async function computePowerRankings(season: number, throughWeek?: number)
     const score =
       WEIGHTS.winPct * normalize(row._raw.winPct, ranges.winPct[0], ranges.winPct[1]) +
       WEIGHTS.avgPoints * normalize(row._raw.avgPoints, ranges.avgPoints[0], ranges.avgPoints[1]) +
-      WEIGHTS.recentForm * normalize(row._raw.recentForm, ranges.recentForm[0], ranges.recentForm[1]) +
       WEIGHTS.scheduleStrength *
         normalize(row._raw.scheduleStrength, ranges.scheduleStrength[0], ranges.scheduleStrength[1]);
     row.powerScore = Math.round(score * 1000) / 10;
