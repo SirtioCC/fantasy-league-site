@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS matchups (
   winner TEXT, -- HOME | AWAY | TIE | UNDECIDED
   playoff_tier_type TEXT, -- NONE | WINNERS_BRACKET | LOSERS_CONSOLATION_LADDER
   is_playoff INTEGER NOT NULL DEFAULT 0,
+  duration_weeks INTEGER NOT NULL DEFAULT 1, -- >1 for a combined multi-week matchup (e.g. a 2-week championship round)
   PRIMARY KEY (season, week, matchup_id)
 );
 

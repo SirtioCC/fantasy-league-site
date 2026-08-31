@@ -21,6 +21,10 @@ export interface GameResult {
   opponentTeamName: string | null;
   opponentPoints: number | null;
   result: 'W' | 'L' | 'T' | 'BYE';
+  /** >1 when this "game" is actually a combined multi-week matchup (e.g. a
+   * 2-week championship round) — points/opponentPoints are a cumulative
+   * sum across that many weeks, not a single week's score. */
+  durationWeeks: number;
 }
 
 let cache: GameResult[] | null = null;
@@ -76,6 +80,7 @@ export function getAllGameResults(): GameResult[] {
       opponentTeamName: opponentTeam?.team_name ?? null,
       opponentPoints: other.points,
       result,
+      durationWeeks: m.duration_weeks ?? 1,
     });
   }
 

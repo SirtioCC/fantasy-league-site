@@ -56,6 +56,7 @@ export interface MatchupRow {
   winner: string | null;
   playoff_tier_type: string | null;
   is_playoff: number;
+  duration_weeks: number;
 }
 
 export interface DraftPickRow {

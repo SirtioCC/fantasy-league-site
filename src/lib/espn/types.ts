@@ -44,6 +44,11 @@ export interface EspnScoreboardTeamEntry {
   teamId: number;
   totalPoints?: number;
   totalPointsLive?: number;
+  /** Present when a "matchup period" combines multiple real weeks (e.g. a
+   * 2-week championship round) — keyed by scoring period id. If this has
+   * more than one key, totalPoints is a combined multi-week sum, not a
+   * single week's score. */
+  pointsByScoringPeriod?: Record<string, number>;
 }
 
 export interface EspnScheduleItem {

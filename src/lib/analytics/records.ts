@@ -141,15 +141,22 @@ export function getRecordBook(): RecordBook {
     };
   }
 
-  const mostPoints = games.reduce((a, b) => (b.points > a.points ? b : a));
-  const fewestPoints = games.reduce((a, b) => (b.points < a.points ? b : a));
+  // Single-week-only games for point-based records: a combined multi-week
+  // matchup (e.g. a 2-week championship round) reports a cumulative total,
+  // which isn't a fair comparison against a normal single week's score.
+  const singleWeekGames = games.filter((g) => g.durationWeeks === 1);
+
+  const mostPoints =
+    singleWeekGames.length > 0 ? singleWeekGames.reduce((a, b) => (b.points > a.points ? b : a)) : null;
+  const fewestPoints =
+    singleWeekGames.length > 0 ? singleWeekGames.reduce((a, b) => (b.points < a.points ? b : a)) : null;
 
   // Only look at one side of each matchup for margin-based records.
   const seen = new Set<string>();
   let biggestBlowout: GameResult | null = null;
   let closestGame: GameResult | null = null;
 
-  for (const g of games) {
+  for (const g of singleWeekGames) {
     if (g.opponentTeamId === null) continue;
     const key = [g.season, g.week, g.teamId, g.opponentTeamId].sort().join(':') + `:${g.season}:${g.week}`;
     if (seen.has(key)) continue;
@@ -234,8 +241,8 @@ export function getRecordBook(): RecordBook {
   }
 
   return {
-    mostPointsInGame: toEntry(mostPoints),
-    fewestPointsInGame: toEntry(fewestPoints),
+    mostPointsInGame: mostPoints ? toEntry(mostPoints) : null,
+    fewestPointsInGame: fewestPoints ? toEntry(fewestPoints) : null,
     biggestBlowout: biggestBlowout ? toEntry(biggestBlowout) : null,
     closestGame: closestGame ? toEntry(closestGame) : null,
     longestWinStreak,

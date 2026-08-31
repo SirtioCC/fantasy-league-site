@@ -19,9 +19,19 @@ export function getDb(): Database.Database {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA_SQL);
+  runMigrations(db);
 
   instance = db;
   return db;
+}
+
+/** Lightweight migrations for databases created before a schema addition —
+ * CREATE TABLE IF NOT EXISTS won't retroactively add new columns. */
+function runMigrations(db: Database.Database): void {
+  const matchupColumns = db.prepare('PRAGMA table_info(matchups)').all() as { name: string }[];
+  if (!matchupColumns.some((c) => c.name === 'duration_weeks')) {
+    db.exec('ALTER TABLE matchups ADD COLUMN duration_weeks INTEGER NOT NULL DEFAULT 1');
+  }
 }
 
 export function getMeta(key: string): string | null {

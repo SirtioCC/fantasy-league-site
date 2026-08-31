@@ -180,8 +180,8 @@ function syncSeasonCore(season: number, league: EspnLeagueResponse): void {
 
     db.prepare('DELETE FROM matchups WHERE season = ?').run(season);
     const insertMatchup = db.prepare(
-      `INSERT INTO matchups (season, week, matchup_id, home_team_id, home_score, away_team_id, away_score, winner, playoff_tier_type, is_playoff)
-       VALUES (@season, @week, @matchup_id, @home_team_id, @home_score, @away_team_id, @away_score, @winner, @playoff_tier_type, @is_playoff)`,
+      `INSERT INTO matchups (season, week, matchup_id, home_team_id, home_score, away_team_id, away_score, winner, playoff_tier_type, is_playoff, duration_weeks)
+       VALUES (@season, @week, @matchup_id, @home_team_id, @home_score, @away_team_id, @away_score, @winner, @playoff_tier_type, @is_playoff, @duration_weeks)`,
     );
     for (const [week, items] of byWeek) {
       items.forEach((item, idx) => {
@@ -194,6 +194,15 @@ function syncSeasonCore(season: number, league: EspnLeagueResponse): void {
         // that combination as an unplayed phantom row and skip it.
         if ((homeScore ?? 0) === 0 && (awayScore ?? 0) === 0) return;
 
+        // Some matchup periods (typically a championship round) combine
+        // multiple real weeks into one cumulative-score "game" — detect
+        // that from the per-scoring-period breakdown so single-week
+        // records (most/fewest points, biggest blowout, closest game)
+        // don't get skewed by a 2-week combined total.
+        const homeWeeks = Object.keys(item.home?.pointsByScoringPeriod ?? {}).length;
+        const awayWeeks = Object.keys(item.away?.pointsByScoringPeriod ?? {}).length;
+        const durationWeeks = Math.max(homeWeeks, awayWeeks, 1);
+
         insertMatchup.run({
           season,
           week,
@@ -205,6 +214,7 @@ function syncSeasonCore(season: number, league: EspnLeagueResponse): void {
           winner: item.winner ?? null,
           playoff_tier_type: item.playoffTierType ?? 'NONE',
           is_playoff: item.playoffTierType === 'WINNERS_BRACKET' ? 1 : 0,
+          duration_weeks: durationWeeks,
         });
       });
     }
