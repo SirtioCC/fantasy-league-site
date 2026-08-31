@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { syncAll } from '@/lib/espn/sync';
-import { isEspnConfigured, getCronSecret } from '@/lib/env';
+import { isEspnConfigured } from '@/lib/env';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
  * Manual "refresh now" endpoint — hit from the UI's Sync button, or by hand.
- * In production this is guarded by CRON_SECRET (same secret the weekly cron
- * job uses) if one is set, so random visitors can't trigger a full ESPN
- * re-sync. In local dev, with no CRON_SECRET configured, it's wide open.
+ * Deliberately open to anyone who can load the site: there's no login
+ * system here, so there's no clean way to prove a request came from the
+ * league rather than a stranger, and triggering an extra sync isn't
+ * sensitive (it only reads from ESPN using credentials that stay
+ * server-side). CRON_SECRET instead protects the automated weekly job at
+ * /api/cron/sync, which Vercel calls machine-to-machine.
  */
 export async function POST(req: NextRequest) {
   if (!isEspnConfigured()) {
@@ -17,14 +20,6 @@ export async function POST(req: NextRequest) {
       { error: 'ESPN credentials are not configured. Set ESPN_S2, ESPN_SWID, and LEAGUE_ID in .env.' },
       { status: 400 },
     );
-  }
-
-  const secret = getCronSecret();
-  if (secret) {
-    const provided = req.headers.get('x-sync-secret') ?? req.nextUrl.searchParams.get('secret');
-    if (provided !== secret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
   }
 
   const seasonParam = req.nextUrl.searchParams.get('season');

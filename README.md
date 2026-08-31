@@ -150,11 +150,14 @@ is a platform feature of the hosted deployment, it does not run during local
 `npm run dev`. Locally, use the manual sync command/button whenever you want
 fresh data.
 
-If you set `CRON_SECRET` in your environment, both the cron endpoint and the
-manual `/api/sync` endpoint require it (Vercel automatically sends
-`Authorization: Bearer $CRON_SECRET` to cron routes; the manual endpoint
-accepts it as an `x-sync-secret` header or `?secret=` query param). Leave
-`CRON_SECRET` unset for local dev if you don't want to bother with it.
+If you set `CRON_SECRET` in your environment, the automated `/api/cron/sync`
+endpoint requires it (Vercel automatically sends
+`Authorization: Bearer $CRON_SECRET` there). The manual `/api/sync` endpoint
+(the "Refresh data" button) is intentionally open to anyone who can load the
+site — there's no login system here, so there's nothing to check a secret
+against, and triggering an extra sync isn't sensitive since your ESPN
+credentials never leave the server. Leave `CRON_SECRET` unset for local dev
+if you don't want to bother with it.
 
 ## 5. Deploying to Vercel
 
@@ -166,8 +169,7 @@ accepts it as an `x-sync-secret` header or `?secret=` query param). Leave
 4. Deploy. `vercel.json` already declares the weekly cron job — Vercel picks
    it up automatically, no extra configuration needed.
 5. After the first deploy, trigger an initial sync so the site isn't empty:
-   hit **Refresh data** in the nav, or `curl -X POST https://your-app.vercel.app/api/sync`
-   (add `?secret=...` if you set `CRON_SECRET`).
+   hit **Refresh data** in the nav, or `curl -X POST https://your-app.vercel.app/api/sync`.
 
 **Note on SQLite on Vercel:** Vercel's serverless functions have an
 ephemeral, ready-only-outside-`/tmp` filesystem — anything written to
