@@ -5,6 +5,7 @@ import { getRecordBook } from '@/lib/analytics/records';
 import { EmptyState } from '@/components/EmptyState';
 import { PointsForBarChart } from '@/components/charts/PointsForBarChart';
 import { OwnerLink } from '@/components/OwnerLink';
+import { StandingsTable } from '@/components/StandingsTable';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,47 +28,7 @@ export default async function StandingsPage() {
         </p>
       </div>
 
-      <div className="card overflow-x-auto">
-        <table className="table-clean table-responsive w-full">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Owner</th>
-              <th>Record</th>
-              <th>Win%</th>
-              <th>PF</th>
-              <th>PPG</th>
-              <th>PA</th>
-              <th className="!text-center">Championships</th>
-              <th className="!text-center">Runner Up</th>
-              <th className="!text-center">Playoff Appearances</th>
-              <th className="!text-center">Last Place Finishes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {standings.map((s, i) => (
-              <tr key={s.ownerId}>
-                <td data-label="#" className="font-semibold text-muted">{i + 1}</td>
-                <td data-label="Owner" className="font-medium">
-                  <OwnerLink ownerId={s.ownerId}>{s.displayName}</OwnerLink>
-                </td>
-                <td data-label="Record">
-                  {s.wins}-{s.losses}
-                  {s.ties ? `-${s.ties}` : ''}
-                </td>
-                <td data-label="Win%">{(s.winPct * 100).toFixed(1)}%</td>
-                <td data-label="PF">{s.pointsFor.toFixed(1)}</td>
-                <td data-label="PPG">{s.avgPointsFor.toFixed(1)}</td>
-                <td data-label="PA">{s.pointsAgainst.toFixed(1)}</td>
-                <td data-label="Championships" className="text-center">{s.championships || ''}</td>
-                <td data-label="Runner Up" className="text-center">{s.runnerUps || ''}</td>
-                <td data-label="Playoff Appearances" className="text-center">{s.playoffAppearances}</td>
-                <td data-label="Last Place Finishes" className="text-center">{s.lastPlaceFinishes || ''}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <StandingsTable standings={standings} />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold">All-Time Points For</h2>
