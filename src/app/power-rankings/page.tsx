@@ -83,7 +83,9 @@ export default async function PowerRankingsPage({
             {rankings.map((r) => (
               <tr key={r.teamId}>
                 <td data-label="#" className="font-semibold text-muted">{r.rank}</td>
-                <td data-label="Team" className="font-medium">{r.teamName}</td>
+                <td data-label="Team" className="font-medium">
+                  <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                </td>
                 <td data-label="Owner" className="text-muted">
                   <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
                 </td>

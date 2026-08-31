@@ -86,7 +86,8 @@ export default async function StandingsPage() {
                   <OwnerLink ownerId={recordBook.mostPointsInGame.ownerId}>
                     {recordBook.mostPointsInGame.ownerName}
                   </OwnerLink>{' '}
-                  ({recordBook.mostPointsInGame.teamName}) · {recordBook.mostPointsInGame.season} Week{' '}
+                  (<OwnerLink ownerId={recordBook.mostPointsInGame.ownerId}>{recordBook.mostPointsInGame.teamName}</OwnerLink>)
+                  · {recordBook.mostPointsInGame.season} Week{' '}
                   {recordBook.mostPointsInGame.week}
                 </>
               }
@@ -101,7 +102,8 @@ export default async function StandingsPage() {
                   <OwnerLink ownerId={recordBook.fewestPointsInGame.ownerId}>
                     {recordBook.fewestPointsInGame.ownerName}
                   </OwnerLink>{' '}
-                  ({recordBook.fewestPointsInGame.teamName}) · {recordBook.fewestPointsInGame.season} Week{' '}
+                  (<OwnerLink ownerId={recordBook.fewestPointsInGame.ownerId}>{recordBook.fewestPointsInGame.teamName}</OwnerLink>)
+                  · {recordBook.fewestPointsInGame.season} Week{' '}
                   {recordBook.fewestPointsInGame.week}
                 </>
               }

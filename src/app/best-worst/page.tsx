@@ -65,7 +65,9 @@ export default async function BestWorstPage() {
                   <td data-label="Champion" className="font-medium">
                     <OwnerLink ownerId={c.ownerId}>{c.ownerName}</OwnerLink>
                   </td>
-                  <td data-label="Team" className="text-muted">{c.teamName}</td>
+                  <td data-label="Team" className="text-muted">
+                    <OwnerLink ownerId={c.ownerId}>{c.teamName}</OwnerLink>
+                  </td>
                   <td data-label="Record">
                     {c.wins}-{c.losses}
                     {c.ties ? `-${c.ties}` : ''}
@@ -119,7 +121,9 @@ export default async function BestWorstPage() {
               {biggestBoomBust.map((r) => (
                 <tr key={`${r.season}-${r.teamId}`}>
                   <td data-label="Season" className="font-semibold">{r.season}</td>
-                  <td data-label="Team" className="font-medium">{r.teamName}</td>
+                  <td data-label="Team" className="font-medium">
+                    <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                  </td>
                   <td data-label="Owner" className="text-muted">
                     <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
                   </td>
@@ -166,7 +170,9 @@ function SeasonTable({
                 <td data-label="Owner" className="font-medium">
                   <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
                 </td>
-                <td data-label="Team" className="text-muted">{r.teamName}</td>
+                <td data-label="Team" className="text-muted">
+                  <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                </td>
                 <td data-label="Record" className={metric === 'wins' ? 'font-bold text-brand' : ''}>
                   {r.wins}-{r.losses}
                   {r.ties ? `-${r.ties}` : ''}
@@ -200,7 +206,9 @@ function ConsistencyTable({ rows }: { rows: Awaited<ReturnType<typeof computeCon
           {rows.map((r) => (
             <tr key={`${r.season}-${r.teamId}`}>
               <td data-label="Season" className="font-semibold">{r.season}</td>
-              <td data-label="Team" className="font-medium">{r.teamName}</td>
+              <td data-label="Team" className="font-medium">
+                <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+              </td>
               <td data-label="Owner" className="text-muted">
                 <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
               </td>

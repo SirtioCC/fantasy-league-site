@@ -66,7 +66,7 @@ export default async function DashboardPage() {
                 <tr key={s.teamId}>
                   <td data-label="#" className="font-semibold text-muted">{s.finalRank ?? i + 1}</td>
                   <td data-label="Team" className="font-medium">
-                    {s.teamName}
+                    <OwnerLink ownerId={s.ownerId}>{s.teamName}</OwnerLink>
                     {s.isChampion && <span className="ml-1.5">🏆</span>}
                   </td>
                   <td data-label="Owner" className="text-muted">
@@ -96,7 +96,9 @@ export default async function DashboardPage() {
           {powerRankings.map((r) => (
             <div key={r.teamId} className="card flex flex-col gap-1 p-4">
               <span className="text-xs font-semibold text-muted">#{r.rank}</span>
-              <span className="font-bold">{r.teamName}</span>
+              <span className="font-bold">
+                <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+              </span>
               <span className="text-xs text-muted">
                 <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
               </span>
