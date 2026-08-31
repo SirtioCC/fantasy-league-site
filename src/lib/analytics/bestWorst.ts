@@ -40,7 +40,7 @@ export function buildSeasonPerformances(): SeasonPerformance[] {
         isChampion: !!s.is_champion,
       };
     })
-    .filter((s): s is SeasonPerformance => s !== null);
+    .filter((s): s is SeasonPerformance => s !== null && s.wins + s.losses + s.ties > 0);
 }
 
 export function bestSeasonsByWins(limit = 10): SeasonPerformance[] {

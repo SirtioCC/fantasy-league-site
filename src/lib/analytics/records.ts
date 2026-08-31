@@ -37,7 +37,6 @@ export function getAllTimeStandings(): OwnerAllTimeSummary[] {
   return owners
     .map((owner): OwnerAllTimeSummary => {
       const ownerTeams = teamsByOwner.get(owner.owner_id) ?? [];
-      const seasonsPlayed = new Set(ownerTeams.map((t) => t.season)).size;
       const teamNames = Array.from(new Set(ownerTeams.map((t) => t.team_name)));
 
       let wins = 0,
@@ -49,10 +48,15 @@ export function getAllTimeStandings(): OwnerAllTimeSummary[] {
         runnerUps = 0,
         playoffAppearances = 0,
         lastPlaceFinishes = 0;
+      const seasonsWithGames = new Set<number>();
 
       for (const t of ownerTeams) {
         const s = standingsByTeamKey.get(`${t.season}:${t.team_id}`);
-        if (!s) continue;
+        // Skip seasons ESPN has no recorded games for (e.g. a league year
+        // that existed but was never actually played) — a 0-0-0 shell
+        // shouldn't count as a season played or drag down the averages.
+        if (!s || s.wins + s.losses + s.ties === 0) continue;
+        seasonsWithGames.add(t.season);
         wins += s.wins;
         losses += s.losses;
         ties += s.ties;
@@ -63,6 +67,8 @@ export function getAllTimeStandings(): OwnerAllTimeSummary[] {
         if (s.made_playoffs) playoffAppearances++;
         if (s.is_last_place) lastPlaceFinishes++;
       }
+
+      const seasonsPlayed = seasonsWithGames.size;
 
       const totalGames = wins + losses + ties;
 
