@@ -34,7 +34,10 @@ async function main() {
     process.exit(1);
   }
 
-  const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/players?scoringPeriodId=0&view=kona_playercard`;
+  // Matches the request fetchPlayersByIds() in src/lib/espn/client.ts makes:
+  // league-scoped, both views combined — that's the only combination that
+  // came back with a populated appliedTotal when we tested this by hand.
+  const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leagues/${creds.leagueId}/players?scoringPeriodId=0&view=players_wl&view=kona_playercard`;
   const filter = { players: { filterIds: { value: [row.player_id] } } };
 
   const res = await fetch(url, {
@@ -48,9 +51,23 @@ async function main() {
   });
 
   console.log('HTTP status:', res.status);
-  const text = await res.text();
-  console.log('--- RAW RESPONSE ---');
-  console.log(text.slice(0, 8000));
+  if (!res.ok) {
+    console.log(await res.text());
+    return;
+  }
+
+  // The x-fantasy-filter isn't reliably honored by this endpoint, so the
+  // response can be the whole player universe — find our player by ID
+  // instead of assuming they're first, and print just their entry.
+  const data = (await res.json()) as unknown;
+  const entries = Array.isArray(data) ? data : (data as { players?: unknown[] }).players ?? [];
+  const match = (entries as { id?: number; player?: { id?: number } }[]).find(
+    (e) => e.id === row.player_id || e.player?.id === row.player_id,
+  );
+
+  console.log(`Total players in response: ${entries.length}`);
+  console.log('--- MATCHED PLAYER ---');
+  console.log(match ? JSON.stringify(match, null, 2) : `NOT FOUND in response (id ${row.player_id})`);
 }
 
 main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
