@@ -3,6 +3,7 @@
  * can see the actual field names/values instead of guessing. Usage:
  *   npx tsx scripts/_debug_player.ts 2025 "Justin Jefferson"
  */
+import 'dotenv/config';
 import { getDb } from '@/lib/db';
 import { getEspnCredentials } from '@/lib/env';
 
