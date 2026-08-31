@@ -36,7 +36,6 @@ export function DraftHistoryTable({ picks }: { picks: OwnerDraftPick[] }) {
               <th>Player</th>
               <th>Pos</th>
               <th>NFL Team</th>
-              <th>Keeper</th>
             </tr>
           </thead>
           <tbody>
@@ -46,7 +45,6 @@ export function DraftHistoryTable({ picks }: { picks: OwnerDraftPick[] }) {
                 <td data-label="Player" className="font-medium">{d.playerName}</td>
                 <td data-label="Pos">{d.position ?? '—'}</td>
                 <td data-label="NFL Team">{d.proTeam ?? '—'}</td>
-                <td data-label="Keeper">{d.keeper ? 'Yes' : ''}</td>
               </tr>
             ))}
           </tbody>
