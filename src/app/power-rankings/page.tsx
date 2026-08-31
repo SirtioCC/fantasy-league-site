@@ -60,8 +60,7 @@ export default async function PowerRankingsPage({
           <h1 className="text-2xl font-extrabold">Power Rankings</h1>
           <p className="text-sm text-muted">
             A composite score blending win %, scoring average, and strength of schedule faced —
-            not just wins and losses. Last-3-games form is shown for reference but isn&apos;t
-            part of the score.
+            not just wins and losses.
           </p>
         </div>
         <SeasonPicker seasons={seasons} selected={season} basePath="/power-rankings" />
@@ -77,7 +76,6 @@ export default async function PowerRankingsPage({
               <th>Power Score</th>
               <th>Record</th>
               <th>Avg Pts</th>
-              <th>Last 3 Avg</th>
               <th>Sched. Strength</th>
             </tr>
           </thead>
@@ -92,7 +90,6 @@ export default async function PowerRankingsPage({
                 <td data-label="Power Score" className="font-bold text-brand">{r.powerScore.toFixed(1)}</td>
                 <td data-label="Record">{r.record}</td>
                 <td data-label="Avg Pts">{r.avgPoints.toFixed(1)}</td>
-                <td data-label="Last 3 Avg">{r.recentFormAvg.toFixed(1)}</td>
                 <td data-label="Sched. Strength">{r.scheduleStrength.toFixed(1)}</td>
               </tr>
             ))}

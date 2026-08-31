@@ -9,14 +9,10 @@ export interface PowerRankingRow {
   powerScore: number; // 0-100
   winPct: number;
   avgPoints: number;
-  recentFormAvg: number; // avg points over last up-to-3 games
   scheduleStrength: number; // avg opponent PPG faced
   record: string; // "W-L-T" through this week
 }
 
-// Recent form (last 3 games) is shown in the table but deliberately not
-// weighted into the score — the whole point of a power ranking is the
-// full-season picture, not a hot/cold streak from the last few weeks.
 const WEIGHTS = { winPct: 0.45, avgPoints: 0.45, scheduleStrength: 0.1 };
 
 function normalize(value: number, min: number, max: number): number {
@@ -28,8 +24,6 @@ function normalize(value: number, min: number, max: number): number {
  * Composite power ranking through a given week of a season (defaults to the
  * latest week with played games). Blends win percentage, scoring average,
  * and strength of schedule faced so far — not just raw win/loss record.
- * Recent form (last up-to-3 games) is computed and shown alongside the
- * ranking but doesn't feed the score itself.
  */
 export async function computePowerRankings(season: number, throughWeek?: number): Promise<PowerRankingRow[]> {
   const allGames = (await getRegularSeasonGameResults()).filter(
@@ -57,8 +51,6 @@ export async function computePowerRankings(season: number, throughWeek?: number)
     const ties = teamGames.filter((g) => g.result === 'T').length;
     const winPct = teamGames.length > 0 ? (wins + ties * 0.5) / teamGames.length : 0;
     const avgPoints = teamGames.reduce((a, g) => a + g.points, 0) / teamGames.length;
-    const recent = teamGames.slice(-3);
-    const recentForm = recent.reduce((a, g) => a + g.points, 0) / recent.length;
     const oppPoints = teamGames
       .map((g) => g.opponentPoints)
       .filter((p): p is number => p !== null);
@@ -74,7 +66,6 @@ export async function computePowerRankings(season: number, throughWeek?: number)
       powerScore: 0,
       winPct,
       avgPoints,
-      recentFormAvg: recentForm,
       scheduleStrength,
       record: `${wins}-${losses}${ties ? `-${ties}` : ''}`,
       _raw: { winPct, avgPoints, scheduleStrength },
