@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { OwnerLink } from '@/components/OwnerLink';
 import { CareerTimeline } from '@/components/CareerTimeline';
 import { CareerTrendChart } from '@/components/charts/CareerTrendChart';
+import { DraftHistoryTable } from '@/components/DraftHistoryTable';
 import { slugToOwnerId } from '@/lib/ownerSlug';
 
 export const dynamic = 'force-dynamic';
@@ -196,32 +197,7 @@ export default async function OwnerProfilePage({
       {profile.draftHistory.length > 0 && (
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-bold">Draft History</h2>
-          <div className="card max-h-[480px] overflow-y-auto overflow-x-auto">
-            <table className="table-clean table-responsive w-full">
-              <thead>
-                <tr>
-                  <th>Season</th>
-                  <th>Pick</th>
-                  <th>Player</th>
-                  <th>Pos</th>
-                  <th>NFL Team</th>
-                  <th>Keeper</th>
-                </tr>
-              </thead>
-              <tbody>
-                {profile.draftHistory.map((d, i) => (
-                  <tr key={i}>
-                    <td data-label="Season" className="font-semibold">{d.season}</td>
-                    <td data-label="Pick">#{d.overallPick}</td>
-                    <td data-label="Player" className="font-medium">{d.playerName}</td>
-                    <td data-label="Pos">{d.position ?? '—'}</td>
-                    <td data-label="NFL Team">{d.proTeam ?? '—'}</td>
-                    <td data-label="Keeper">{d.keeper ? 'Yes' : ''}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DraftHistoryTable picks={profile.draftHistory} />
         </section>
       )}
     </div>
