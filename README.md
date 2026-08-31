@@ -1,12 +1,12 @@
-# Gridiron Gauntlet — Fantasy Football Stats & Analysis
+# Oakwood Fantasy Football — Stats & Analysis
 
-A stats and analytics site for a private 12-team ESPN Fantasy Football league:
-all-time standings, power rankings, "luck" ratings, head-to-head history,
-best/worst seasons, and owner profiles — built on top of your league's full
-ESPN history.
+A stats and analytics site for the Oakwood 12-team ESPN Fantasy Football
+league: all-time standings, power rankings, "luck" ratings, head-to-head
+history, best/worst seasons, and owner profiles — built on top of the
+league's full ESPN history.
 
-> The name "Gridiron Gauntlet" and the 🏆 emoji logo are placeholders. See
-> [Rebranding](#rebranding) below to swap in your own league name/logo.
+> The 🏆 emoji logo is a placeholder. See [Rebranding](#rebranding) below to
+> swap in a real logo, or to change the display name further.
 
 ## Tech stack
 
