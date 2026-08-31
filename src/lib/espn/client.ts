@@ -1,8 +1,8 @@
 import { getEspnCredentials, type EspnCredentials } from '@/lib/env';
 import type { EspnLeagueResponse, EspnPlayersResponse } from './types';
 
-const CURRENT_SEASON_BASE = 'https://fantasy.espn.com/apis/v3/games/ffl/seasons';
-const HISTORY_BASE = 'https://fantasy.espn.com/apis/v3/games/ffl/leagueHistory';
+const CURRENT_SEASON_BASE = 'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons';
+const HISTORY_BASE = 'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/leagueHistory';
 const PLAYERS_BASE = 'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons';
 
 export class EspnNotFoundError extends Error {}
