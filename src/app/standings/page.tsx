@@ -33,7 +33,6 @@ export default async function StandingsPage() {
             <tr>
               <th>#</th>
               <th>Owner</th>
-              <th>Seasons</th>
               <th>Record</th>
               <th>Win%</th>
               <th>PF</th>
@@ -53,7 +52,6 @@ export default async function StandingsPage() {
                     {s.displayName}
                   </Link>
                 </td>
-                <td>{s.seasonsPlayed}</td>
                 <td>
                   {s.wins}-{s.losses}
                   {s.ties ? `-${s.ties}` : ''}
