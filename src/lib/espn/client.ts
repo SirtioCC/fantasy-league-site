@@ -152,10 +152,12 @@ export async function fetchPlayersByIds(
   const chunkSize = 300;
   for (let i = 0; i < playerIds.length; i += chunkSize) {
     const chunk = playerIds.slice(i, i + chunkSize);
-    // kona_playercard returns each player's full stat lines (including the
-    // season-total actual, used for their points-scored total) alongside
-    // the name/position/team fields the simpler players_wl view gave us.
-    const url = `${PLAYERS_BASE}/${season}/players?scoringPeriodId=0&view=kona_playercard`;
+    // ESPN only computes appliedTotal (fantasy points under this league's
+    // scoring settings) when the request is scoped to the league AND asks
+    // for both views together — kona_playercard alone comes back with empty
+    // `stats` objects, confirmed via scripts/_debug_player.ts against the
+    // live API. players_wl is what already reliably resolved name/position.
+    const url = `${PLAYERS_BASE}/${season}/segments/0/leagues/${creds.leagueId}/players?scoringPeriodId=0&view=players_wl&view=kona_playercard`;
     const filter = { players: { filterIds: { value: chunk } } };
 
     const res = await fetch(url, {
