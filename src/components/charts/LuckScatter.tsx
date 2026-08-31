@@ -81,7 +81,7 @@ export function LuckScatter({ data }: { data: LuckPoint[] }) {
             );
           }}
         />
-        <Scatter data={data} fill="var(--color-brand, #5b3df0)" />
+        <Scatter data={data} fill="var(--color-brand, #ea580c)" />
       </ScatterChart>
     </ResponsiveContainer>
   );

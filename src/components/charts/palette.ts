@@ -1,18 +1,18 @@
 /** A 12-color categorical palette (one per team), chosen to stay legible on
  * both light and dark backgrounds. */
 export const CHART_PALETTE = [
-  '#5b3df0',
-  '#17c980',
-  '#ff7a45',
-  '#d4a017',
-  '#2f9bff',
-  '#e0508a',
-  '#00b8a9',
-  '#a259ff',
-  '#ff5c5c',
-  '#3ddc97',
-  '#f2994a',
-  '#6c7a89',
+  '#ea580c',
+  '#15803d',
+  '#2563eb',
+  '#ca8a04',
+  '#dc2626',
+  '#0891b2',
+  '#7c3aed',
+  '#db2777',
+  '#65a30d',
+  '#0d9488',
+  '#9a3412',
+  '#64748b',
 ];
 
 export function colorForIndex(index: number): string {

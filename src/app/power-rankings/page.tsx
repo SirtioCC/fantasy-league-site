@@ -95,7 +95,7 @@ export default async function PowerRankingsPage({
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-bold">Power Score Trend</h2>
           <p className="text-xs text-muted">
-            Ordered by current power rank. Green = trending up since week 1, orange = trending down.
+            Ordered by current power rank. Green = trending up since week 1, red = trending down.
           </p>
           <SparklineGrid series={powerSeries} />
         </section>
