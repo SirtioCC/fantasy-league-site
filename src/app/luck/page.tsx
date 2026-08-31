@@ -1,5 +1,5 @@
 import { hasAnyData } from '@/lib/db';
-import { getSeasons } from '@/lib/db/queries';
+import { getSeasonsWithGames } from '@/lib/db/queries';
 import { computeLuckRatings } from '@/lib/analytics/luck';
 import { EmptyState } from '@/components/EmptyState';
 import { SeasonPicker } from '@/components/SeasonPicker';
@@ -14,7 +14,7 @@ export default async function LuckPage({
 }) {
   if (!hasAnyData()) return <EmptyState />;
 
-  const seasons = getSeasons().map((s) => s.season);
+  const seasons = getSeasonsWithGames();
   const { season: seasonParam } = await searchParams;
   const season = seasonParam ? Number.parseInt(seasonParam, 10) : seasons[0];
 

@@ -1,4 +1,4 @@
-import { getSeasons, getStandingsForSeason } from '@/lib/db/queries';
+import { getStandingsForSeason } from '@/lib/db/queries';
 import { getRegularSeasonGameResults } from './gameResults';
 
 export interface TeamSeasonLuck {
@@ -120,8 +120,4 @@ export function computeLuckRatings(season?: number): TeamSeasonLuck[] {
   }
 
   return out.sort((a, b) => b.luck - a.luck);
-}
-
-export function getSeasonsWithData(): number[] {
-  return getSeasons().map((s) => s.season);
 }

@@ -114,6 +114,16 @@ export function getLatestSeason(): SeasonRow | null {
   return seasons[0] ?? null;
 }
 
+/** Seasons that actually have at least one real (non-phantom) matchup —
+ * excludes a league year that exists on ESPN as an empty shell (created,
+ * but no games ever played/scored, e.g. a dormant season). */
+export function getSeasonsWithGames(): number[] {
+  const rows = getDb()
+    .prepare('SELECT DISTINCT season FROM matchups ORDER BY season DESC')
+    .all() as { season: number }[];
+  return rows.map((r) => r.season);
+}
+
 export function getAllTeams(): TeamRow[] {
   return getDb().prepare('SELECT * FROM teams').all() as TeamRow[];
 }

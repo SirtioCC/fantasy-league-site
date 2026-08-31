@@ -1,5 +1,5 @@
 import { hasAnyData } from '@/lib/db';
-import { getSeasons } from '@/lib/db/queries';
+import { getSeasonsWithGames } from '@/lib/db/queries';
 import { computePowerRankings, computePowerRankingsHistory } from '@/lib/analytics/powerRankings';
 import { getAllGameResults } from '@/lib/analytics/gameResults';
 import { EmptyState } from '@/components/EmptyState';
@@ -15,7 +15,7 @@ export default async function PowerRankingsPage({
 }) {
   if (!hasAnyData()) return <EmptyState />;
 
-  const seasons = getSeasons().map((s) => s.season);
+  const seasons = getSeasonsWithGames();
   const { season: seasonParam } = await searchParams;
   const season = seasonParam ? Number.parseInt(seasonParam, 10) : seasons[0];
 
