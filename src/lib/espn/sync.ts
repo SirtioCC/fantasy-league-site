@@ -106,9 +106,12 @@ function syncSeasonCore(season: number, league: EspnLeagueResponse): void {
       upsertOwner(displayName, member.id);
     }
 
+    // Only WINNERS_BRACKET counts as "made the playoffs" — teams that miss
+    // the cut still play postseason games, but in LOSERS_CONSOLATION_LADDER,
+    // which is not the playoffs.
     const teamIdToPlayoffTierSeen = new Map<number, boolean>();
     for (const item of league.schedule ?? []) {
-      if (item.playoffTierType && item.playoffTierType !== 'NONE') {
+      if (item.playoffTierType === 'WINNERS_BRACKET') {
         if (item.home) teamIdToPlayoffTierSeen.set(item.home.teamId, true);
         if (item.away) teamIdToPlayoffTierSeen.set(item.away.teamId, true);
       }
@@ -201,7 +204,7 @@ function syncSeasonCore(season: number, league: EspnLeagueResponse): void {
           away_score: awayScore,
           winner: item.winner ?? null,
           playoff_tier_type: item.playoffTierType ?? 'NONE',
-          is_playoff: item.playoffTierType && item.playoffTierType !== 'NONE' ? 1 : 0,
+          is_playoff: item.playoffTierType === 'WINNERS_BRACKET' ? 1 : 0,
         });
       });
     }
