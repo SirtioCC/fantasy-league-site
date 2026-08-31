@@ -120,18 +120,6 @@ export async function computeLeagueAwards(): Promise<LeagueAward[]> {
     });
   }
 
-  // Iron Man — most seasons played.
-  if (standings.length > 0) {
-    const ironMan = standings.reduce((a, b) => (b.seasonsPlayed > a.seasonsPlayed ? b : a));
-    awards.push({
-      emoji: '🦾',
-      label: 'Iron Man',
-      description: `${ironMan.seasonsPlayed} seasons in the league — more than anyone else`,
-      ownerId: ironMan.ownerId,
-      ownerName: ironMan.displayName,
-    });
-  }
-
   // High Scorer / Ice Cold — career points-for average.
   if (standings.length > 0) {
     const highScorer = standings.reduce((a, b) => (b.avgPointsFor > a.avgPointsFor ? b : a));
