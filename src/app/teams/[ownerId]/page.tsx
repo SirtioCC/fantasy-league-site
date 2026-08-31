@@ -193,19 +193,6 @@ export default async function OwnerProfilePage({
         </div>
       </section>
 
-      {profile.favoritePositions.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-bold">Draft Tendencies</h2>
-          <div className="card flex flex-wrap gap-2 p-4">
-            {profile.favoritePositions.map((p) => (
-              <span key={p.position} className="pill bg-surface-muted">
-                {p.position} <span className="text-muted">×{p.count}</span>
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
-
       {profile.draftHistory.length > 0 && (
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-bold">Draft History</h2>

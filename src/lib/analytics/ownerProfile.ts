@@ -45,7 +45,6 @@ export interface OwnerProfile {
   bestSeason: SeasonPerformance | null;
   worstSeason: SeasonPerformance | null;
   draftHistory: OwnerDraftPick[];
-  favoritePositions: { position: string; count: number }[];
   awards: LeagueAward[];
   rivalrySummary: OwnerRivalrySummary;
   recordsHeld: OwnerRecordHeld[];
@@ -101,15 +100,6 @@ export async function getOwnerProfile(ownerId: string): Promise<OwnerProfile | n
 
   const draftHistory = perTeamPicks.flat().sort((a, b) => b.season - a.season || a.overallPick - b.overallPick);
 
-  const positionCounts = new Map<string, number>();
-  for (const pick of draftHistory) {
-    if (pick.position) positionCounts.set(pick.position, (positionCounts.get(pick.position) ?? 0) + 1);
-  }
-
-  const favoritePositions = Array.from(positionCounts.entries())
-    .map(([position, count]) => ({ position, count }))
-    .sort((a, b) => b.count - a.count);
-
   const recordsHeld = buildRecordsHeld(ownerId, recordBook);
 
   const luckBySeason = new Map(
@@ -148,7 +138,6 @@ export async function getOwnerProfile(ownerId: string): Promise<OwnerProfile | n
     bestSeason,
     worstSeason,
     draftHistory,
-    favoritePositions,
     awards,
     rivalrySummary,
     recordsHeld,
