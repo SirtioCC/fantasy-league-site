@@ -279,7 +279,12 @@ async function syncDraftAndTransactions(season: number): Promise<void> {
 }
 
 export async function syncSeason(season: number): Promise<void> {
-  const league = await fetchLeagueSnapshot(season, ['mTeam', 'mStandings', 'mSettings', 'mMatchupScore']);
+  const league = await fetchLeagueSnapshot(
+    season,
+    ['mTeam', 'mStandings', 'mSettings', 'mMatchupScore'],
+    undefined,
+    { requireTeamStats: true },
+  );
   syncSeasonCore(season, league);
   await syncDraftAndTransactions(season);
 }

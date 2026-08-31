@@ -60,19 +60,28 @@ function buildViewQuery(views: string[]): string {
  * (works for the season currently in progress) and the "leagueHistory"
  * endpoint (works for any completed past season). ESPN's API is picky about
  * which one answers for which years, so the sync layer tries the other one
- * as a fallback automatically.
+ * as a fallback automatically. It also sometimes returns team *shells*
+ * (name/logo/owner, but a blank `record.overall`) from the "current season"
+ * endpoint for an old season instead of erroring — pass `requireTeamStats`
+ * to detect that and retry against the historical endpoint instead of
+ * silently accepting zeroed-out stats.
  */
 export async function fetchLeagueSnapshot(
   season: number,
   views: string[],
   creds: EspnCredentials = mustGetCreds(),
+  options: { requireTeamStats?: boolean } = {},
 ): Promise<EspnLeagueResponse> {
   const query = buildViewQuery(views);
 
   const currentUrl = `${CURRENT_SEASON_BASE}/${season}/segments/0/leagues/${creds.leagueId}?${query}`;
   try {
     const data = (await espnFetch(currentUrl, creds)) as EspnLeagueResponse;
-    if (data && typeof data === 'object' && 'id' in data) return data;
+    if (data && typeof data === 'object' && 'id' in data) {
+      if (!options.requireTeamStats || hasPopulatedTeamStats(data)) return data;
+      // Fall through: this response has teams but blank stats — a known
+      // ESPN quirk for some past seasons. Try the historical endpoint.
+    }
   } catch (err) {
     if (err instanceof EspnAuthError) throw err;
     // fall through to history endpoint
@@ -80,11 +89,22 @@ export async function fetchLeagueSnapshot(
 
   const historyUrl = `${HISTORY_BASE}/${creds.leagueId}?seasonId=${season}&${query}`;
   const data = (await espnFetch(historyUrl, creds)) as EspnLeagueResponse[] | EspnLeagueResponse;
-  if (Array.isArray(data)) {
-    if (data.length === 0) throw new EspnNotFoundError(`No history for season ${season}`);
-    return data[0];
-  }
-  return data;
+  const historySnapshot = Array.isArray(data)
+    ? (() => {
+        if (data.length === 0) throw new EspnNotFoundError(`No history for season ${season}`);
+        return data[0];
+      })()
+    : data;
+  return historySnapshot;
+}
+
+function hasPopulatedTeamStats(data: EspnLeagueResponse): boolean {
+  const teams = data.teams;
+  if (!teams || teams.length === 0) return false;
+  return teams.some((t) => {
+    const overall = t.record?.overall;
+    return !!overall && (typeof overall.wins === 'number' || typeof overall.pointsFor === 'number');
+  });
 }
 
 /**
