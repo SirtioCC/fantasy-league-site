@@ -3,8 +3,7 @@ import { getSeasons } from '@/lib/db/queries';
 import { computePowerRankings, computePowerRankingsHistory } from '@/lib/analytics/powerRankings';
 import { getAllGameResults } from '@/lib/analytics/gameResults';
 import { EmptyState } from '@/components/EmptyState';
-import { PowerRankingsLineChart, type PowerHistoryPoint } from '@/components/charts/PowerRankingsLineChart';
-import { WeeklyScoringChart, type WeeklySeriesPoint } from '@/components/charts/WeeklyScoringChart';
+import { SparklineGrid, type SparklineSeries } from '@/components/charts/SparklineGrid';
 import { SeasonPicker } from '@/components/SeasonPicker';
 
 export const dynamic = 'force-dynamic';
@@ -22,26 +21,31 @@ export default async function PowerRankingsPage({
 
   const rankings = computePowerRankings(season);
   const history = computePowerRankingsHistory(season);
-
   const weeks = Array.from(history.keys()).sort((a, b) => a - b);
-  const teamNames = rankings.map((r) => r.teamName);
-  const chartData: PowerHistoryPoint[] = weeks.map((week) => {
-    const point: PowerHistoryPoint = { week };
-    for (const row of history.get(week) ?? []) {
-      point[row.teamName] = row.powerScore;
-    }
-    return point;
-  });
+
+  const powerSeries: SparklineSeries[] = rankings.map((r) => ({
+    key: String(r.teamId),
+    label: r.teamName,
+    sublabel: r.ownerName,
+    points: weeks.map((week) => ({
+      week,
+      value: history.get(week)?.find((row) => row.teamId === r.teamId)?.powerScore ?? null,
+    })),
+  }));
 
   const seasonGames = getAllGameResults().filter((g) => g.season === season && g.result !== 'BYE');
   const scoringWeeks = Array.from(new Set(seasonGames.map((g) => g.week))).sort((a, b) => a - b);
-  const scoringData: WeeklySeriesPoint[] = scoringWeeks.map((week) => {
-    const point: WeeklySeriesPoint = { week };
-    for (const g of seasonGames.filter((gg) => gg.week === week)) {
-      point[g.teamName] = g.points;
-    }
-    return point;
-  });
+  const gamesByTeamWeek = new Map(seasonGames.map((g) => [`${g.teamId}:${g.week}`, g.points]));
+
+  const scoringSeries: SparklineSeries[] = rankings.map((r) => ({
+    key: String(r.teamId),
+    label: r.teamName,
+    sublabel: r.ownerName,
+    points: scoringWeeks.map((week) => ({
+      week,
+      value: gamesByTeamWeek.get(`${r.teamId}:${week}`) ?? null,
+    })),
+  }));
 
   return (
     <div className="flex flex-col gap-8">
@@ -89,19 +93,19 @@ export default async function PowerRankingsPage({
 
       {weeks.length > 1 && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-bold">Power Score Over the Season</h2>
-          <div className="card p-4">
-            <PowerRankingsLineChart data={chartData} teamNames={teamNames} />
-          </div>
+          <h2 className="text-lg font-bold">Power Score Trend</h2>
+          <p className="text-xs text-muted">
+            Ordered by current power rank. Green = trending up since week 1, orange = trending down.
+          </p>
+          <SparklineGrid series={powerSeries} valueFormatter={(v) => v.toFixed(1)} />
         </section>
       )}
 
       {scoringWeeks.length > 1 && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-bold">Weekly Scoring Trends</h2>
-          <div className="card p-4">
-            <WeeklyScoringChart data={scoringData} teamNames={teamNames} />
-          </div>
+          <h2 className="text-lg font-bold">Weekly Scoring Trend</h2>
+          <p className="text-xs text-muted">Points scored per week, one card per team.</p>
+          <SparklineGrid series={scoringSeries} valueFormatter={(v) => v.toFixed(1)} />
         </section>
       )}
     </div>
