@@ -37,10 +37,10 @@ export default async function StandingsPage() {
               <th>Win%</th>
               <th>PF</th>
               <th>PA</th>
-              <th>🏆</th>
-              <th>🥈</th>
-              <th>Playoffs</th>
-              <th>Last</th>
+              <th>Championships</th>
+              <th>Runner Up</th>
+              <th>Playoff Appearances</th>
+              <th>Last Place Finishes</th>
             </tr>
           </thead>
           <tbody>
