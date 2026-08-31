@@ -97,7 +97,7 @@ export default async function PowerRankingsPage({
           <p className="text-xs text-muted">
             Ordered by current power rank. Green = trending up since week 1, orange = trending down.
           </p>
-          <SparklineGrid series={powerSeries} valueFormatter={(v) => v.toFixed(1)} />
+          <SparklineGrid series={powerSeries} />
         </section>
       )}
 
@@ -105,7 +105,7 @@ export default async function PowerRankingsPage({
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-bold">Weekly Scoring Trend</h2>
           <p className="text-xs text-muted">Points scored per week, one card per team.</p>
-          <SparklineGrid series={scoringSeries} valueFormatter={(v) => v.toFixed(1)} />
+          <SparklineGrid series={scoringSeries} />
         </section>
       )}
     </div>
