@@ -36,6 +36,7 @@ export default async function StandingsPage() {
               <th>Record</th>
               <th>Win%</th>
               <th>PF</th>
+              <th>PPG</th>
               <th>PA</th>
               <th className="!text-center">Championships</th>
               <th className="!text-center">Runner Up</th>
@@ -56,6 +57,7 @@ export default async function StandingsPage() {
                 </td>
                 <td data-label="Win%">{(s.winPct * 100).toFixed(1)}%</td>
                 <td data-label="PF">{s.pointsFor.toFixed(1)}</td>
+                <td data-label="PPG">{s.avgPointsFor.toFixed(1)}</td>
                 <td data-label="PA">{s.pointsAgainst.toFixed(1)}</td>
                 <td data-label="Championships" className="text-center">{s.championships || ''}</td>
                 <td data-label="Runner Up" className="text-center">{s.runnerUps || ''}</td>
