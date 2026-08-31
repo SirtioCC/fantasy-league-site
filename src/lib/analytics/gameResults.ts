@@ -1,15 +1,17 @@
-import {
-  getAllMatchups,
-  getAllTeams,
-  getOwners,
-  getSeasons,
-  type MatchupRow,
-} from '@/lib/db/queries';
+import { getAllMatchups, getAllTeams, getOwners, type MatchupRow } from '@/lib/db/queries';
 
 export interface GameResult {
   season: number;
   week: number;
   isPlayoff: boolean;
+  /** Raw ESPN playoffTierType for this matchup: 'NONE' for an ordinary
+   * regular-season game, 'WINNERS_BRACKET' for a championship-bracket game,
+   * or a consolation-ladder value for a placement game played during the
+   * playoff weeks. `isPlayoff` above only tracks the WINNERS_BRACKET case —
+   * this field is what actually distinguishes "regular season" from
+   * everything else, since a consolation game is still not a real
+   * regular-season game even though it isn't WINNERS_BRACKET either. */
+  playoffTierType: string | null;
   teamId: number;
   ownerId: string;
   ownerName: string;
@@ -76,6 +78,7 @@ export async function getAllGameResults(): Promise<GameResult[]> {
       season: m.season,
       week: m.week,
       isPlayoff: !!m.is_playoff,
+      playoffTierType: m.playoff_tier_type,
       teamId: side.teamId,
       ownerId: team.owner_id,
       ownerName: owners.get(team.owner_id) ?? 'Unknown Owner',
@@ -114,13 +117,18 @@ export function invalidateGameResultsCache() {
 }
 
 /** Regular-season-only games (used for luck / power ranking math, where we
- * want every team compared against the same full-league pool each week). */
+ * want every team compared against the same full-league pool each week).
+ *
+ * A game only counts as "regular season" when ESPN's playoffTierType is
+ * 'NONE' (or missing, for older synced data). `isPlayoff`/`is_playoff` is
+ * NOT enough on its own — it's only set for WINNERS_BRACKET games, so a
+ * team eliminated into the consolation ladder keeps racking up "regular
+ * season" games in the playoff weeks while the team that actually made
+ * the championship has its bracket games excluded, giving playoff teams
+ * an artificially short, skewed record. Week-number cutoffs have the same
+ * problem in reverse if `regular_season_weeks` is ever missing/zero for a
+ * season. playoffTierType sidesteps both. */
 export async function getRegularSeasonGameResults(): Promise<GameResult[]> {
-  const [seasonRows, games] = await Promise.all([getSeasons(), getAllGameResults()]);
-  const seasons = new Map(seasonRows.map((s) => [s.season, s]));
-  return games.filter((g) => {
-    const season = seasons.get(g.season);
-    if (!season?.regular_season_weeks) return !g.isPlayoff;
-    return g.week <= season.regular_season_weeks;
-  });
+  const games = await getAllGameResults();
+  return games.filter((g) => !g.playoffTierType || g.playoffTierType === 'NONE');
 }
