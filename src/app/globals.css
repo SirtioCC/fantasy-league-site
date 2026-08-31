@@ -1,26 +1,102 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f5fb;
+  --surface: #ffffff;
+  --surface-muted: #eef0f9;
+  --foreground: #14162b;
+  --muted: #5b5f7d;
+  --border: #e1e3f0;
+  --brand: #5b3df0;
+  --brand-dark: #3d27b8;
+  --accent: #17c980;
+  --accent-warm: #ff7a45;
+  --gold: #d4a017;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-accent: var(--accent);
+  --color-accent-warm: var(--accent-warm);
+  --color-gold: var(--gold);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0b0c17;
+    --surface: #14162a;
+    --surface-muted: #1b1e37;
+    --foreground: #f2f3fb;
+    --muted: #9497b8;
+    --border: #262a48;
+    --brand: #8b6bff;
+    --brand-dark: #5b3df0;
+    --accent: #24e29a;
+    --accent-warm: #ff9466;
+    --gold: #f2c14e;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+
+.card-muted {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+
+.table-clean th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0.6rem 0.85rem;
+  white-space: nowrap;
+}
+
+.table-clean td {
+  padding: 0.6rem 0.85rem;
+  border-top: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.table-clean tr:hover td {
+  background: var(--surface-muted);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
 }

@@ -1,0 +1,238 @@
+import { getAllStandings, getAllTeams, getOwners, type StandingRow } from '@/lib/db/queries';
+import { getAllGameResults, type GameResult } from './gameResults';
+
+export interface OwnerAllTimeSummary {
+  ownerId: string;
+  displayName: string;
+  seasonsPlayed: number;
+  teamNames: string[];
+  wins: number;
+  losses: number;
+  ties: number;
+  winPct: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  avgPointsFor: number;
+  championships: number;
+  runnerUps: number;
+  playoffAppearances: number;
+  lastPlaceFinishes: number;
+}
+
+export function getAllTimeStandings(): OwnerAllTimeSummary[] {
+  const owners = getOwners();
+  const standings = getAllStandings();
+  const teams = getAllTeams();
+
+  const teamsByOwner = new Map<string, typeof teams>();
+  for (const t of teams) {
+    const list = teamsByOwner.get(t.owner_id) ?? [];
+    list.push(t);
+    teamsByOwner.set(t.owner_id, list);
+  }
+
+  const standingsByTeamKey = new Map<string, StandingRow>();
+  for (const s of standings) standingsByTeamKey.set(`${s.season}:${s.team_id}`, s);
+
+  return owners
+    .map((owner): OwnerAllTimeSummary => {
+      const ownerTeams = teamsByOwner.get(owner.owner_id) ?? [];
+      const seasonsPlayed = new Set(ownerTeams.map((t) => t.season)).size;
+      const teamNames = Array.from(new Set(ownerTeams.map((t) => t.team_name)));
+
+      let wins = 0,
+        losses = 0,
+        ties = 0,
+        pointsFor = 0,
+        pointsAgainst = 0,
+        championships = 0,
+        runnerUps = 0,
+        playoffAppearances = 0,
+        lastPlaceFinishes = 0;
+
+      for (const t of ownerTeams) {
+        const s = standingsByTeamKey.get(`${t.season}:${t.team_id}`);
+        if (!s) continue;
+        wins += s.wins;
+        losses += s.losses;
+        ties += s.ties;
+        pointsFor += s.points_for;
+        pointsAgainst += s.points_against;
+        if (s.is_champion) championships++;
+        if (s.is_runner_up) runnerUps++;
+        if (s.made_playoffs) playoffAppearances++;
+        if (s.is_last_place) lastPlaceFinishes++;
+      }
+
+      const totalGames = wins + losses + ties;
+
+      return {
+        ownerId: owner.owner_id,
+        displayName: owner.display_name,
+        seasonsPlayed,
+        teamNames,
+        wins,
+        losses,
+        ties,
+        winPct: totalGames > 0 ? (wins + ties * 0.5) / totalGames : 0,
+        pointsFor,
+        pointsAgainst,
+        avgPointsFor: totalGames > 0 ? pointsFor / totalGames : 0,
+        championships,
+        runnerUps,
+        playoffAppearances,
+        lastPlaceFinishes,
+      };
+    })
+    .filter((o) => o.seasonsPlayed > 0)
+    .sort((a, b) => b.winPct - a.winPct || b.pointsFor - a.pointsFor);
+}
+
+export interface RecordBookEntry {
+  season: number;
+  week: number;
+  ownerName: string;
+  teamName: string;
+  points: number;
+  opponentOwnerName?: string | null;
+  opponentTeamName?: string | null;
+  opponentPoints?: number | null;
+  margin?: number;
+}
+
+export interface RecordBook {
+  mostPointsInGame: RecordBookEntry | null;
+  fewestPointsInGame: RecordBookEntry | null;
+  biggestBlowout: RecordBookEntry | null;
+  closestGame: RecordBookEntry | null;
+  longestWinStreak: { ownerName: string; length: number; startSeason: number; endSeason: number } | null;
+  longestLossStreak: { ownerName: string; length: number; startSeason: number; endSeason: number } | null;
+}
+
+function toEntry(g: GameResult): RecordBookEntry {
+  return {
+    season: g.season,
+    week: g.week,
+    ownerName: g.ownerName,
+    teamName: g.teamName,
+    points: g.points,
+    opponentOwnerName: g.opponentOwnerName,
+    opponentTeamName: g.opponentTeamName,
+    opponentPoints: g.opponentPoints,
+  };
+}
+
+export function getRecordBook(): RecordBook {
+  const games = getAllGameResults().filter((g) => g.result !== 'BYE');
+  if (games.length === 0) {
+    return {
+      mostPointsInGame: null,
+      fewestPointsInGame: null,
+      biggestBlowout: null,
+      closestGame: null,
+      longestWinStreak: null,
+      longestLossStreak: null,
+    };
+  }
+
+  const mostPoints = games.reduce((a, b) => (b.points > a.points ? b : a));
+  const fewestPoints = games.reduce((a, b) => (b.points < a.points ? b : a));
+
+  // Only look at one side of each matchup for margin-based records.
+  const seen = new Set<string>();
+  let biggestBlowout: GameResult | null = null;
+  let closestGame: GameResult | null = null;
+
+  for (const g of games) {
+    if (g.opponentTeamId === null) continue;
+    const key = [g.season, g.week, g.teamId, g.opponentTeamId].sort().join(':') + `:${g.season}:${g.week}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const margin = Math.abs(g.points - (g.opponentPoints ?? 0));
+    if (!biggestBlowout || margin > Math.abs(biggestBlowout.points - (biggestBlowout.opponentPoints ?? 0))) {
+      biggestBlowout = g;
+    }
+    if (g.result !== 'T' && (!closestGame || margin < Math.abs(closestGame.points - (closestGame.opponentPoints ?? 0)))) {
+      closestGame = g;
+    }
+  }
+
+  // Win/loss streaks per owner, in chronological order across all seasons.
+  const byOwner = new Map<string, GameResult[]>();
+  for (const g of games) {
+    const list = byOwner.get(g.ownerId) ?? [];
+    list.push(g);
+    byOwner.set(g.ownerId, list);
+  }
+
+  let longestWinStreak: RecordBook['longestWinStreak'] = null;
+  let longestLossStreak: RecordBook['longestLossStreak'] = null;
+
+  for (const [, list] of byOwner) {
+    list.sort((a, b) => a.season - b.season || a.week - b.week);
+
+    let winRun = 0,
+      winStart = 0;
+    let lossRun = 0,
+      lossStart = 0;
+
+    list.forEach((g, i) => {
+      if (g.result === 'W') {
+        if (winRun === 0) winStart = i;
+        winRun++;
+      } else {
+        if (winRun > (longestWinStreak?.length ?? 0)) {
+          longestWinStreak = {
+            ownerName: list[i - 1].ownerName,
+            length: winRun,
+            startSeason: list[winStart].season,
+            endSeason: list[i - 1].season,
+          };
+        }
+        winRun = 0;
+      }
+
+      if (g.result === 'L') {
+        if (lossRun === 0) lossStart = i;
+        lossRun++;
+      } else {
+        if (lossRun > (longestLossStreak?.length ?? 0)) {
+          longestLossStreak = {
+            ownerName: list[i - 1].ownerName,
+            length: lossRun,
+            startSeason: list[lossStart].season,
+            endSeason: list[i - 1].season,
+          };
+        }
+        lossRun = 0;
+      }
+    });
+
+    if (winRun > (longestWinStreak?.length ?? 0)) {
+      longestWinStreak = {
+        ownerName: list[list.length - 1].ownerName,
+        length: winRun,
+        startSeason: list[winStart].season,
+        endSeason: list[list.length - 1].season,
+      };
+    }
+    if (lossRun > (longestLossStreak?.length ?? 0)) {
+      longestLossStreak = {
+        ownerName: list[list.length - 1].ownerName,
+        length: lossRun,
+        startSeason: list[lossStart].season,
+        endSeason: list[list.length - 1].season,
+      };
+    }
+  }
+
+  return {
+    mostPointsInGame: toEntry(mostPoints),
+    fewestPointsInGame: toEntry(fewestPoints),
+    biggestBlowout: biggestBlowout ? toEntry(biggestBlowout) : null,
+    closestGame: closestGame ? toEntry(closestGame) : null,
+    longestWinStreak,
+    longestLossStreak,
+  };
+}
