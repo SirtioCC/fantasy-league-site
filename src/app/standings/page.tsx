@@ -28,7 +28,7 @@ export default async function StandingsPage() {
       </div>
 
       <div className="card overflow-x-auto">
-        <table className="table-clean w-full">
+        <table className="table-clean table-responsive w-full">
           <thead>
             <tr>
               <th>#</th>
@@ -46,23 +46,23 @@ export default async function StandingsPage() {
           <tbody>
             {standings.map((s, i) => (
               <tr key={s.ownerId}>
-                <td className="font-semibold text-muted">{i + 1}</td>
-                <td className="font-medium">
+                <td data-label="#" className="font-semibold text-muted">{i + 1}</td>
+                <td data-label="Owner" className="font-medium">
                   <Link href={`/teams/${s.ownerId}`} className="hover:text-brand hover:underline">
                     {s.displayName}
                   </Link>
                 </td>
-                <td>
+                <td data-label="Record">
                   {s.wins}-{s.losses}
                   {s.ties ? `-${s.ties}` : ''}
                 </td>
-                <td>{(s.winPct * 100).toFixed(1)}%</td>
-                <td>{s.pointsFor.toFixed(1)}</td>
-                <td>{s.pointsAgainst.toFixed(1)}</td>
-                <td className="text-center">{s.championships || ''}</td>
-                <td className="text-center">{s.runnerUps || ''}</td>
-                <td className="text-center">{s.playoffAppearances}</td>
-                <td className="text-center">{s.lastPlaceFinishes || ''}</td>
+                <td data-label="Win%">{(s.winPct * 100).toFixed(1)}%</td>
+                <td data-label="PF">{s.pointsFor.toFixed(1)}</td>
+                <td data-label="PA">{s.pointsAgainst.toFixed(1)}</td>
+                <td data-label="Championships" className="text-center">{s.championships || ''}</td>
+                <td data-label="Runner Up" className="text-center">{s.runnerUps || ''}</td>
+                <td data-label="Playoff Appearances" className="text-center">{s.playoffAppearances}</td>
+                <td data-label="Last Place Finishes" className="text-center">{s.lastPlaceFinishes || ''}</td>
               </tr>
             ))}
           </tbody>

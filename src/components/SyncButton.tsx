@@ -45,10 +45,11 @@ export function SyncButton() {
       <button
         onClick={handleSync}
         disabled={status === 'loading'}
-        className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-60"
+        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-60 sm:px-3.5 sm:text-sm"
       >
         <span className={status === 'loading' ? 'animate-spin' : ''}>⟳</span>
-        {status === 'loading' ? 'Syncing…' : 'Refresh data'}
+        <span className="hidden sm:inline">{status === 'loading' ? 'Syncing…' : 'Refresh data'}</span>
+        <span className="sm:hidden">{status === 'loading' ? 'Syncing…' : 'Refresh'}</span>
       </button>
     </div>
   );

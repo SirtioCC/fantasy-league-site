@@ -52,7 +52,7 @@ export default async function LuckPage({
       </div>
 
       <div className="card overflow-x-auto">
-        <table className="table-clean w-full">
+        <table className="table-clean table-responsive w-full">
           <thead>
             <tr>
               <th>Team</th>
@@ -69,21 +69,24 @@ export default async function LuckPage({
           <tbody>
             {seasonLuck.map((r) => (
               <tr key={r.teamId}>
-                <td className="font-medium">{r.teamName}</td>
-                <td className="text-muted">{r.ownerName}</td>
-                <td>{r.actualWins.toFixed(1)}</td>
-                <td>{r.expectedWins.toFixed(2)}</td>
-                <td className={r.luck > 0 ? 'font-semibold text-accent' : r.luck < 0 ? 'font-semibold text-accent-warm' : ''}>
+                <td data-label="Team" className="font-medium">{r.teamName}</td>
+                <td data-label="Owner" className="text-muted">{r.ownerName}</td>
+                <td data-label="Actual W">{r.actualWins.toFixed(1)}</td>
+                <td data-label="Expected W">{r.expectedWins.toFixed(2)}</td>
+                <td
+                  data-label="Luck"
+                  className={r.luck > 0 ? 'font-semibold text-accent' : r.luck < 0 ? 'font-semibold text-accent-warm' : ''}
+                >
                   {r.luck > 0 ? '+' : ''}
                   {r.luck.toFixed(2)}
                 </td>
-                <td>
+                <td data-label="Sched. Difficulty">
                   {r.scheduleDifficulty > 0 ? '+' : ''}
                   {r.scheduleDifficulty.toFixed(1)}
                 </td>
-                <td>{r.pointsForRank}</td>
-                <td>{r.standingsRank || '—'}</td>
-                <td>
+                <td data-label="PF Rank">{r.pointsForRank}</td>
+                <td data-label="Standings Rank">{r.standingsRank || '—'}</td>
+                <td data-label="Over/Under">
                   {r.overUnderPerformance > 0 ? '+' : ''}
                   {r.overUnderPerformance}
                 </td>
@@ -107,7 +110,7 @@ export default async function LuckPage({
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold">All-Time Luck Leaderboard</h2>
         <div className="card overflow-x-auto">
-          <table className="table-clean w-full">
+          <table className="table-clean table-responsive w-full">
             <thead>
               <tr>
                 <th>Owner</th>
@@ -118,9 +121,12 @@ export default async function LuckPage({
             <tbody>
               {allTimeLeaderboard.map((o) => (
                 <tr key={o.ownerName}>
-                  <td className="font-medium">{o.ownerName}</td>
-                  <td>{o.seasons}</td>
-                  <td className={o.luck > 0 ? 'font-semibold text-accent' : o.luck < 0 ? 'font-semibold text-accent-warm' : ''}>
+                  <td data-label="Owner" className="font-medium">{o.ownerName}</td>
+                  <td data-label="Seasons">{o.seasons}</td>
+                  <td
+                    data-label="Cumulative Luck"
+                    className={o.luck > 0 ? 'font-semibold text-accent' : o.luck < 0 ? 'font-semibold text-accent-warm' : ''}
+                  >
                     {o.luck > 0 ? '+' : ''}
                     {o.luck.toFixed(2)}
                   </td>

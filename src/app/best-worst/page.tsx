@@ -44,7 +44,7 @@ export default async function BestWorstPage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold">Championship Seasons</h2>
         <div className="card overflow-x-auto">
-          <table className="table-clean w-full">
+          <table className="table-clean table-responsive w-full">
             <thead>
               <tr>
                 <th>Season</th>
@@ -57,14 +57,14 @@ export default async function BestWorstPage() {
             <tbody>
               {champions.map((c) => (
                 <tr key={`${c.season}-${c.teamId}`}>
-                  <td className="font-semibold">{c.season}</td>
-                  <td className="font-medium">{c.ownerName}</td>
-                  <td className="text-muted">{c.teamName}</td>
-                  <td>
+                  <td data-label="Season" className="font-semibold">{c.season}</td>
+                  <td data-label="Champion" className="font-medium">{c.ownerName}</td>
+                  <td data-label="Team" className="text-muted">{c.teamName}</td>
+                  <td data-label="Record">
                     {c.wins}-{c.losses}
                     {c.ties ? `-${c.ties}` : ''}
                   </td>
-                  <td>{c.pointsFor.toFixed(1)}</td>
+                  <td data-label="PF">{c.pointsFor.toFixed(1)}</td>
                 </tr>
               ))}
               {champions.length === 0 && (
@@ -98,7 +98,7 @@ export default async function BestWorstPage() {
           Boom weeks = scored 15%+ above their own season average. Bust weeks = scored 15%+ below.
         </p>
         <div className="card overflow-x-auto">
-          <table className="table-clean w-full">
+          <table className="table-clean table-responsive w-full">
             <thead>
               <tr>
                 <th>Season</th>
@@ -112,12 +112,12 @@ export default async function BestWorstPage() {
             <tbody>
               {biggestBoomBust.map((r) => (
                 <tr key={`${r.season}-${r.teamId}`}>
-                  <td className="font-semibold">{r.season}</td>
-                  <td className="font-medium">{r.teamName}</td>
-                  <td className="text-muted">{r.ownerName}</td>
-                  <td>{r.avgPoints.toFixed(1)}</td>
-                  <td className="text-accent">{r.boomWeeks}</td>
-                  <td className="text-accent-warm">{r.bustWeeks}</td>
+                  <td data-label="Season" className="font-semibold">{r.season}</td>
+                  <td data-label="Team" className="font-medium">{r.teamName}</td>
+                  <td data-label="Owner" className="text-muted">{r.ownerName}</td>
+                  <td data-label="Avg Pts">{r.avgPoints.toFixed(1)}</td>
+                  <td data-label="Boom Weeks" className="text-accent">{r.boomWeeks}</td>
+                  <td data-label="Bust Weeks" className="text-accent-warm">{r.bustWeeks}</td>
                 </tr>
               ))}
             </tbody>
@@ -141,7 +141,7 @@ function SeasonTable({
     <div className="flex flex-col gap-3">
       <h2 className="text-base font-bold">{title}</h2>
       <div className="card overflow-x-auto">
-        <table className="table-clean w-full">
+        <table className="table-clean table-responsive w-full">
           <thead>
             <tr>
               <th>Season</th>
@@ -154,14 +154,16 @@ function SeasonTable({
           <tbody>
             {rows.map((r) => (
               <tr key={`${r.season}-${r.teamId}`}>
-                <td className="font-semibold">{r.season}</td>
-                <td className="font-medium">{r.ownerName}</td>
-                <td className="text-muted">{r.teamName}</td>
-                <td className={metric === 'wins' ? 'font-bold text-brand' : ''}>
+                <td data-label="Season" className="font-semibold">{r.season}</td>
+                <td data-label="Owner" className="font-medium">{r.ownerName}</td>
+                <td data-label="Team" className="text-muted">{r.teamName}</td>
+                <td data-label="Record" className={metric === 'wins' ? 'font-bold text-brand' : ''}>
                   {r.wins}-{r.losses}
                   {r.ties ? `-${r.ties}` : ''}
                 </td>
-                <td className={metric === 'points' ? 'font-bold text-brand' : ''}>{r.pointsFor.toFixed(1)}</td>
+                <td data-label="PF" className={metric === 'points' ? 'font-bold text-brand' : ''}>
+                  {r.pointsFor.toFixed(1)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -174,7 +176,7 @@ function SeasonTable({
 function ConsistencyTable({ rows }: { rows: ReturnType<typeof computeConsistency> }) {
   return (
     <div className="card overflow-x-auto">
-      <table className="table-clean w-full">
+      <table className="table-clean table-responsive w-full">
         <thead>
           <tr>
             <th>Season</th>
@@ -187,11 +189,11 @@ function ConsistencyTable({ rows }: { rows: ReturnType<typeof computeConsistency
         <tbody>
           {rows.map((r) => (
             <tr key={`${r.season}-${r.teamId}`}>
-              <td className="font-semibold">{r.season}</td>
-              <td className="font-medium">{r.teamName}</td>
-              <td className="text-muted">{r.ownerName}</td>
-              <td>{r.avgPoints.toFixed(1)}</td>
-              <td>{r.stdDev.toFixed(1)}</td>
+              <td data-label="Season" className="font-semibold">{r.season}</td>
+              <td data-label="Team" className="font-medium">{r.teamName}</td>
+              <td data-label="Owner" className="text-muted">{r.ownerName}</td>
+              <td data-label="Avg Pts">{r.avgPoints.toFixed(1)}</td>
+              <td data-label="Std Dev">{r.stdDev.toFixed(1)}</td>
             </tr>
           ))}
         </tbody>

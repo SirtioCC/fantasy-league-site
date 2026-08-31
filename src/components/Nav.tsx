@@ -26,14 +26,17 @@ export function Nav() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6">
-        <div className="flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
-            <span className="text-2xl">{LEAGUE_EMOJI}</span>
-            <span>{LEAGUE_NAME}</span>
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            href="/"
+            className="flex min-w-0 items-center gap-2 text-base font-extrabold tracking-tight sm:text-lg"
+          >
+            <span className="shrink-0 text-xl sm:text-2xl">{LEAGUE_EMOJI}</span>
+            <span className="truncate">{LEAGUE_NAME}</span>
           </Link>
           <SyncButton />
         </div>
-        <nav className="-mx-1 flex gap-1 overflow-x-auto pb-1 text-sm font-medium">
+        <nav className="scroll-fade-x -mx-1 flex gap-1 overflow-x-auto pb-1 text-sm font-medium">
           {LINKS.map((link) => {
             const active = isActive(pathname, link.href);
             return (

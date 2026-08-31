@@ -45,7 +45,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
         <div className="card overflow-x-auto">
-          <table className="table-clean w-full">
+          <table className="table-clean table-responsive w-full">
             <thead>
               <tr>
                 <th>#</th>
@@ -59,18 +59,18 @@ export default async function DashboardPage() {
             <tbody>
               {standings.map((s, i) => (
                 <tr key={s.teamId}>
-                  <td className="font-semibold text-muted">{s.finalRank ?? i + 1}</td>
-                  <td className="font-medium">
+                  <td data-label="#" className="font-semibold text-muted">{s.finalRank ?? i + 1}</td>
+                  <td data-label="Team" className="font-medium">
                     {s.teamName}
                     {s.isChampion && <span className="ml-1.5">🏆</span>}
                   </td>
-                  <td className="text-muted">{s.ownerName}</td>
-                  <td>
+                  <td data-label="Owner" className="text-muted">{s.ownerName}</td>
+                  <td data-label="Record">
                     {s.wins}-{s.losses}
                     {s.ties ? `-${s.ties}` : ''}
                   </td>
-                  <td>{s.pointsFor.toFixed(1)}</td>
-                  <td>{s.pointsAgainst.toFixed(1)}</td>
+                  <td data-label="PF">{s.pointsFor.toFixed(1)}</td>
+                  <td data-label="PA">{s.pointsAgainst.toFixed(1)}</td>
                 </tr>
               ))}
             </tbody>

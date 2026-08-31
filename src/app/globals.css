@@ -58,45 +58,114 @@ body {
     sans-serif;
 }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-}
+/* Component classes live in Tailwind's `components` layer so utility
+ * classes (e.g. `bg-gradient-to-br`) can still override them on the same
+ * element — plain unlayered CSS would otherwise always win regardless of
+ * source order, per the CSS cascade layers spec. */
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+  }
 
-.card-muted {
-  background: var(--surface-muted);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-}
+  .card-muted {
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+  }
 
-.table-clean th {
-  text-align: left;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  font-weight: 600;
-  padding: 0.6rem 0.85rem;
-  white-space: nowrap;
-}
+  .table-clean th {
+    text-align: left;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 0.6rem 0.85rem;
+    white-space: nowrap;
+  }
 
-.table-clean td {
-  padding: 0.6rem 0.85rem;
-  border-top: 1px solid var(--border);
-  white-space: nowrap;
-}
+  .table-clean td {
+    padding: 0.6rem 0.85rem;
+    border-top: 1px solid var(--border);
+    white-space: nowrap;
+  }
 
-.table-clean tr:hover td {
-  background: var(--surface-muted);
-}
+  .table-clean tr:hover td {
+    background: var(--surface-muted);
+  }
 
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  border-radius: 999px;
-  padding: 0.15rem 0.6rem;
-  font-size: 0.72rem;
-  font-weight: 600;
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  /* Below 640px, a `.table-responsive` table reflows from a wide grid into
+   * a stack of label/value cards (one per row) instead of relying on
+   * horizontal scroll — every column stays visible without swiping, using
+   * each cell's `data-label` attribute as its printed label. */
+  @media (max-width: 640px) {
+    .table-responsive {
+      display: block;
+    }
+    .table-responsive thead {
+      display: none;
+    }
+    .table-responsive tbody {
+      display: block;
+    }
+    .table-responsive tr {
+      display: block;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.25rem 0;
+      margin-bottom: 0.6rem;
+    }
+    .table-responsive tr:last-child {
+      margin-bottom: 0;
+    }
+    .table-responsive td {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.4rem 0.85rem;
+      border-top: none;
+      white-space: normal;
+      text-align: right;
+    }
+    .table-responsive td[data-label]::before {
+      content: attr(data-label);
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+      text-align: left;
+      flex-shrink: 0;
+    }
+    .table-responsive td:empty,
+    .table-responsive td:not([data-label]):not([colspan]) {
+      display: none;
+    }
+    /* A colspan cell is a whole-row message (e.g. "no data yet"), not a
+     * label/value pair — render it as a plain centered block instead. */
+    .table-responsive td[colspan] {
+      display: block;
+      text-align: center;
+    }
+  }
+
+  /* Fades the trailing edge of a horizontally-scrollable strip (the nav
+   * tab bar) to hint there's more content off-screen, without JS. */
+  .scroll-fade-x {
+    mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+  }
 }

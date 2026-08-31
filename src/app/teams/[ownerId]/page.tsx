@@ -72,7 +72,7 @@ export default async function OwnerProfilePage({
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold">Season by Season</h2>
         <div className="card overflow-x-auto">
-          <table className="table-clean w-full">
+          <table className="table-clean table-responsive w-full">
             <thead>
               <tr>
                 <th>Season</th>
@@ -86,15 +86,15 @@ export default async function OwnerProfilePage({
             <tbody>
               {profile.seasons.map((s) => (
                 <tr key={s.season}>
-                  <td className="font-semibold">{s.season}</td>
-                  <td>{s.teamName}</td>
-                  <td>
+                  <td data-label="Season" className="font-semibold">{s.season}</td>
+                  <td data-label="Team">{s.teamName}</td>
+                  <td data-label="Record">
                     {s.wins}-{s.losses}
                     {s.ties ? `-${s.ties}` : ''}
                   </td>
-                  <td>{s.pointsFor.toFixed(1)}</td>
-                  <td>{s.pointsAgainst.toFixed(1)}</td>
-                  <td>
+                  <td data-label="PF">{s.pointsFor.toFixed(1)}</td>
+                  <td data-label="PA">{s.pointsAgainst.toFixed(1)}</td>
+                  <td data-label="Final Rank">
                     {s.finalRank ?? '—'}
                     {s.isChampion && ' 🏆'}
                   </td>
@@ -122,7 +122,7 @@ export default async function OwnerProfilePage({
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-bold">Draft History</h2>
           <div className="card max-h-[480px] overflow-y-auto overflow-x-auto">
-            <table className="table-clean w-full">
+            <table className="table-clean table-responsive w-full">
               <thead>
                 <tr>
                   <th>Season</th>
@@ -136,12 +136,12 @@ export default async function OwnerProfilePage({
               <tbody>
                 {profile.draftHistory.map((d, i) => (
                   <tr key={i}>
-                    <td className="font-semibold">{d.season}</td>
-                    <td>#{d.overallPick}</td>
-                    <td className="font-medium">{d.playerName}</td>
-                    <td>{d.position ?? '—'}</td>
-                    <td>{d.proTeam ?? '—'}</td>
-                    <td>{d.keeper ? 'Yes' : ''}</td>
+                    <td data-label="Season" className="font-semibold">{d.season}</td>
+                    <td data-label="Pick">#{d.overallPick}</td>
+                    <td data-label="Player" className="font-medium">{d.playerName}</td>
+                    <td data-label="Pos">{d.position ?? '—'}</td>
+                    <td data-label="NFL Team">{d.proTeam ?? '—'}</td>
+                    <td data-label="Keeper">{d.keeper ? 'Yes' : ''}</td>
                   </tr>
                 ))}
               </tbody>

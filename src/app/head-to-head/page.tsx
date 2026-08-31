@@ -25,39 +25,42 @@ export default async function HeadToHeadPage({
         <p className="text-sm text-muted">All-time regular season + playoff results between every pair of owners.</p>
       </div>
 
-      <div className="card overflow-x-auto">
-        <table className="table-clean w-full">
-          <thead>
-            <tr>
-              <th className="sticky left-0 z-10 bg-surface">Owner ↓ vs →</th>
-              {owners.map((o) => (
-                <th key={o.owner_id}>{o.display_name}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {matrix.map((row) => (
-              <tr key={row.ownerId}>
-                <td className="sticky left-0 z-10 bg-surface font-medium">{row.ownerName}</td>
-                {owners.map((o) => {
-                  if (o.owner_id === row.ownerId) {
+      <div className="flex flex-col gap-2">
+        <div className="card overflow-x-auto">
+          <table className="table-clean w-full">
+            <thead>
+              <tr>
+                <th className="sticky left-0 z-10 bg-surface">Owner ↓ vs →</th>
+                {owners.map((o) => (
+                  <th key={o.owner_id}>{o.display_name}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {matrix.map((row) => (
+                <tr key={row.ownerId}>
+                  <td className="sticky left-0 z-10 bg-surface font-medium">{row.ownerName}</td>
+                  {owners.map((o) => {
+                    if (o.owner_id === row.ownerId) {
+                      return (
+                        <td key={o.owner_id} className="text-center text-muted">
+                          —
+                        </td>
+                      );
+                    }
+                    const cell = row.vs.get(o.owner_id);
                     return (
-                      <td key={o.owner_id} className="text-center text-muted">
-                        —
+                      <td key={o.owner_id} className="text-center">
+                        {cell ? `${cell.wins}-${cell.losses}${cell.ties ? `-${cell.ties}` : ''}` : '0-0'}
                       </td>
                     );
-                  }
-                  const cell = row.vs.get(o.owner_id);
-                  return (
-                    <td key={o.owner_id} className="text-center">
-                      {cell ? `${cell.wins}-${cell.losses}${cell.ties ? `-${cell.ties}` : ''}` : '0-0'}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-muted sm:hidden">Swipe the table left to see every owner →</p>
       </div>
 
       <section className="flex flex-col gap-3">
@@ -66,23 +69,23 @@ export default async function HeadToHeadPage({
 
         {rivalry && (
           <div className="card flex flex-col gap-4 p-5">
-            <div className="flex items-center justify-center gap-6 text-center">
-              <div>
-                <div className="text-xl font-extrabold">{rivalry.ownerAName}</div>
-                <div className="text-3xl font-extrabold text-brand">{rivalry.ownerAWins}</div>
+            <div className="flex flex-wrap items-center justify-center gap-3 text-center sm:gap-6">
+              <div className="min-w-0">
+                <div className="truncate text-base font-extrabold sm:text-xl">{rivalry.ownerAName}</div>
+                <div className="text-2xl font-extrabold text-brand sm:text-3xl">{rivalry.ownerAWins}</div>
               </div>
               <div className="text-muted">vs</div>
-              <div>
-                <div className="text-xl font-extrabold">{rivalry.ownerBName}</div>
-                <div className="text-3xl font-extrabold text-brand">{rivalry.ownerBWins}</div>
+              <div className="min-w-0">
+                <div className="truncate text-base font-extrabold sm:text-xl">{rivalry.ownerBName}</div>
+                <div className="text-2xl font-extrabold text-brand sm:text-3xl">{rivalry.ownerBWins}</div>
               </div>
               {rivalry.ties > 0 && (
-                <div className="text-sm text-muted">({rivalry.ties} ties)</div>
+                <div className="w-full text-sm text-muted">({rivalry.ties} ties)</div>
               )}
             </div>
 
             <div className="overflow-x-auto">
-              <table className="table-clean w-full">
+              <table className="table-clean table-responsive w-full">
                 <thead>
                   <tr>
                     <th>Season</th>
@@ -95,18 +98,24 @@ export default async function HeadToHeadPage({
                 <tbody>
                   {rivalry.games.map((g, i) => (
                     <tr key={i}>
-                      <td>{g.season}</td>
-                      <td>
+                      <td data-label="Season">{g.season}</td>
+                      <td data-label="Week">
                         {g.week}
                         {g.isPlayoff ? ' (P)' : ''}
                       </td>
-                      <td className={g.winnerOwnerId === rivalry.ownerAId ? 'font-bold' : ''}>
+                      <td
+                        data-label={rivalry.ownerAName}
+                        className={g.winnerOwnerId === rivalry.ownerAId ? 'font-bold' : ''}
+                      >
                         {g.ownerAPoints.toFixed(1)}
                       </td>
-                      <td className={g.winnerOwnerId === rivalry.ownerBId ? 'font-bold' : ''}>
+                      <td
+                        data-label={rivalry.ownerBName}
+                        className={g.winnerOwnerId === rivalry.ownerBId ? 'font-bold' : ''}
+                      >
                         {g.ownerBPoints.toFixed(1)}
                       </td>
-                      <td className="text-muted">
+                      <td data-label="Winner" className="text-muted">
                         {g.winnerOwnerId === rivalry.ownerAId
                           ? rivalry.ownerAName
                           : g.winnerOwnerId === rivalry.ownerBId

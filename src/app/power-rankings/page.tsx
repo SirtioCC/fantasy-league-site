@@ -61,7 +61,7 @@ export default async function PowerRankingsPage({
       </div>
 
       <div className="card overflow-x-auto">
-        <table className="table-clean w-full">
+        <table className="table-clean table-responsive w-full">
           <thead>
             <tr>
               <th>#</th>
@@ -77,14 +77,14 @@ export default async function PowerRankingsPage({
           <tbody>
             {rankings.map((r) => (
               <tr key={r.teamId}>
-                <td className="font-semibold text-muted">{r.rank}</td>
-                <td className="font-medium">{r.teamName}</td>
-                <td className="text-muted">{r.ownerName}</td>
-                <td className="font-bold text-brand">{r.powerScore.toFixed(1)}</td>
-                <td>{r.record}</td>
-                <td>{r.avgPoints.toFixed(1)}</td>
-                <td>{r.recentFormAvg.toFixed(1)}</td>
-                <td>{r.scheduleStrength.toFixed(1)}</td>
+                <td data-label="#" className="font-semibold text-muted">{r.rank}</td>
+                <td data-label="Team" className="font-medium">{r.teamName}</td>
+                <td data-label="Owner" className="text-muted">{r.ownerName}</td>
+                <td data-label="Power Score" className="font-bold text-brand">{r.powerScore.toFixed(1)}</td>
+                <td data-label="Record">{r.record}</td>
+                <td data-label="Avg Pts">{r.avgPoints.toFixed(1)}</td>
+                <td data-label="Last 3 Avg">{r.recentFormAvg.toFixed(1)}</td>
+                <td data-label="Sched. Strength">{r.scheduleStrength.toFixed(1)}</td>
               </tr>
             ))}
           </tbody>
