@@ -43,7 +43,11 @@ export function getConfiguredStartYear(): number | null {
 }
 
 export function getDatabasePath(): string {
-  return readEnv('DATABASE_PATH') ?? './data/league.db';
+  const configured = readEnv('DATABASE_PATH');
+  if (configured) return configured;
+  // Vercel's deployed filesystem is read-only outside /tmp — everywhere
+  // else (local dev, most other hosts) the project directory is writable.
+  return process.env.VERCEL ? '/tmp/league.db' : './data/league.db';
 }
 
 export function getCronSecret(): string | null {
