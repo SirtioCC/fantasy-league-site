@@ -182,14 +182,23 @@ function syncSeasonCore(season: number, league: EspnLeagueResponse): void {
     );
     for (const [week, items] of byWeek) {
       items.forEach((item, idx) => {
+        const homeScore = item.home?.totalPoints ?? null;
+        const awayScore = item.away?.totalPoints ?? null;
+        // ESPN sometimes auto-generates a full matchup schedule for a
+        // league year even when no games were ever actually played/scored
+        // (e.g. a dormant season), leaving every matchup at an impossible
+        // 0.0-0.0. A real fantasy score is never exactly zero, so treat
+        // that combination as an unplayed phantom row and skip it.
+        if ((homeScore ?? 0) === 0 && (awayScore ?? 0) === 0) return;
+
         insertMatchup.run({
           season,
           week,
           matchup_id: idx,
           home_team_id: item.home?.teamId ?? null,
-          home_score: item.home?.totalPoints ?? null,
+          home_score: homeScore,
           away_team_id: item.away?.teamId ?? null,
-          away_score: item.away?.totalPoints ?? null,
+          away_score: awayScore,
           winner: item.winner ?? null,
           playoff_tier_type: item.playoffTierType ?? 'NONE',
           is_playoff: item.playoffTierType && item.playoffTierType !== 'NONE' ? 1 : 0,
