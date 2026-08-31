@@ -1,6 +1,9 @@
 import { getDraftPicksForSeason, getOwner, getPlayersMap, getTeamsForOwner } from '@/lib/db/queries';
-import { getAllTimeStandings, type OwnerAllTimeSummary } from './records';
+import { getAllTimeStandings, getRecordBook, type OwnerAllTimeSummary, type RecordBook } from './records';
 import { buildSeasonPerformances, type SeasonPerformance } from './bestWorst';
+import { getOwnerAwards, type LeagueAward } from './awards';
+import { getOwnerRivalrySummary, type OwnerRivalrySummary } from './headToHead';
+import { computeLuckRatings } from './luck';
 
 export interface OwnerDraftPick {
   season: number;
@@ -13,6 +16,27 @@ export interface OwnerDraftPick {
   bidAmount: number | null;
 }
 
+export interface OwnerRecordHeld {
+  label: string;
+  detail: string;
+}
+
+export interface OwnerCareerTrendPoint {
+  season: number;
+  pointsFor: number;
+  avgPointsFor: number;
+  luck: number | null;
+}
+
+export interface OwnerTimelineEntry {
+  season: number;
+  finalRank: number | null;
+  isChampion: boolean;
+  isRunnerUp: boolean;
+  madePlayoffs: boolean;
+  isLastPlace: boolean;
+}
+
 export interface OwnerProfile {
   ownerId: string;
   displayName: string;
@@ -22,17 +46,27 @@ export interface OwnerProfile {
   worstSeason: SeasonPerformance | null;
   draftHistory: OwnerDraftPick[];
   favoritePositions: { position: string; count: number }[];
+  awards: LeagueAward[];
+  rivalrySummary: OwnerRivalrySummary;
+  recordsHeld: OwnerRecordHeld[];
+  careerTrend: OwnerCareerTrendPoint[];
+  timeline: OwnerTimelineEntry[];
 }
 
 export async function getOwnerProfile(ownerId: string): Promise<OwnerProfile | null> {
   const owner = await getOwner(ownerId);
   if (!owner) return null;
 
-  const [allTimeStandings, allSeasonPerformances, ownerTeams] = await Promise.all([
-    getAllTimeStandings(),
-    buildSeasonPerformances(),
-    getTeamsForOwner(ownerId),
-  ]);
+  const [allTimeStandings, allSeasonPerformances, ownerTeams, awards, rivalrySummary, recordBook, allLuck] =
+    await Promise.all([
+      getAllTimeStandings(),
+      buildSeasonPerformances(),
+      getTeamsForOwner(ownerId),
+      getOwnerAwards(ownerId),
+      getOwnerRivalrySummary(ownerId),
+      getRecordBook(),
+      computeLuckRatings(),
+    ]);
 
   const summary = allTimeStandings.find((o) => o.ownerId === ownerId) ?? null;
   const seasons = allSeasonPerformances
@@ -76,6 +110,36 @@ export async function getOwnerProfile(ownerId: string): Promise<OwnerProfile | n
     .map(([position, count]) => ({ position, count }))
     .sort((a, b) => b.count - a.count);
 
+  const recordsHeld = buildRecordsHeld(ownerId, recordBook);
+
+  const luckBySeason = new Map(
+    allLuck
+      .filter((r) => r.ownerId === ownerId)
+      .map((r) => [r.season, r.luck] as const),
+  );
+  const careerTrend: OwnerCareerTrendPoint[] = [...seasons]
+    .sort((a, b) => a.season - b.season)
+    .map((s) => {
+      const games = s.wins + s.losses + s.ties;
+      return {
+        season: s.season,
+        pointsFor: s.pointsFor,
+        avgPointsFor: games > 0 ? s.pointsFor / games : 0,
+        luck: luckBySeason.get(s.season) ?? null,
+      };
+    });
+
+  const timeline: OwnerTimelineEntry[] = [...seasons]
+    .sort((a, b) => a.season - b.season)
+    .map((s) => ({
+      season: s.season,
+      finalRank: s.finalRank,
+      isChampion: s.isChampion,
+      isRunnerUp: s.isRunnerUp,
+      madePlayoffs: s.madePlayoffs,
+      isLastPlace: s.isLastPlace,
+    }));
+
   return {
     ownerId,
     displayName: owner.display_name,
@@ -85,5 +149,65 @@ export async function getOwnerProfile(ownerId: string): Promise<OwnerProfile | n
     worstSeason,
     draftHistory,
     favoritePositions,
+    awards,
+    rivalrySummary,
+    recordsHeld,
+    careerTrend,
+    timeline,
   };
+}
+
+/** Cross-references the league-wide record book against one owner, so the
+ * profile page can show "you hold this record" rather than just linking to
+ * the global standings page's record book. */
+function buildRecordsHeld(ownerId: string, recordBook: RecordBook): OwnerRecordHeld[] {
+  const held: OwnerRecordHeld[] = [];
+
+  if (recordBook.mostPointsInGame?.ownerId === ownerId) {
+    held.push({
+      label: 'Most points in a game',
+      detail: `${recordBook.mostPointsInGame.points.toFixed(2)} · ${recordBook.mostPointsInGame.season} Week ${recordBook.mostPointsInGame.week}`,
+    });
+  }
+  if (recordBook.fewestPointsInGame?.ownerId === ownerId) {
+    held.push({
+      label: 'Fewest points in a game',
+      detail: `${recordBook.fewestPointsInGame.points.toFixed(2)} · ${recordBook.fewestPointsInGame.season} Week ${recordBook.fewestPointsInGame.week}`,
+    });
+  }
+  if (
+    recordBook.biggestBlowout &&
+    (recordBook.biggestBlowout.ownerId === ownerId || recordBook.biggestBlowout.opponentOwnerId === ownerId)
+  ) {
+    const b = recordBook.biggestBlowout;
+    const won = b.ownerId === ownerId;
+    held.push({
+      label: won ? 'Biggest blowout (winning side)' : 'Biggest blowout (losing side)',
+      detail: `${Math.abs(b.points - (b.opponentPoints ?? 0)).toFixed(2)} pts · ${b.season} Week ${b.week}`,
+    });
+  }
+  if (
+    recordBook.closestGame &&
+    (recordBook.closestGame.ownerId === ownerId || recordBook.closestGame.opponentOwnerId === ownerId)
+  ) {
+    const c = recordBook.closestGame;
+    held.push({
+      label: 'Closest game',
+      detail: `${Math.abs(c.points - (c.opponentPoints ?? 0)).toFixed(2)} pts · ${c.season} Week ${c.week}`,
+    });
+  }
+  if (recordBook.longestWinStreak?.ownerId === ownerId) {
+    held.push({
+      label: 'Longest win streak',
+      detail: `${recordBook.longestWinStreak.length} games · ${recordBook.longestWinStreak.startSeason}–${recordBook.longestWinStreak.endSeason}`,
+    });
+  }
+  if (recordBook.longestLossStreak?.ownerId === ownerId) {
+    held.push({
+      label: 'Longest losing streak',
+      detail: `${recordBook.longestLossStreak.length} games · ${recordBook.longestLossStreak.startSeason}–${recordBook.longestLossStreak.endSeason}`,
+    });
+  }
+
+  return held;
 }

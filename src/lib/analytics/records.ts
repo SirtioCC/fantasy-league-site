@@ -95,13 +95,23 @@ export async function getAllTimeStandings(): Promise<OwnerAllTimeSummary[]> {
 export interface RecordBookEntry {
   season: number;
   week: number;
+  ownerId: string;
   ownerName: string;
   teamName: string;
   points: number;
+  opponentOwnerId?: string | null;
   opponentOwnerName?: string | null;
   opponentTeamName?: string | null;
   opponentPoints?: number | null;
   margin?: number;
+}
+
+export interface RecordStreak {
+  ownerId: string;
+  ownerName: string;
+  length: number;
+  startSeason: number;
+  endSeason: number;
 }
 
 export interface RecordBook {
@@ -109,17 +119,19 @@ export interface RecordBook {
   fewestPointsInGame: RecordBookEntry | null;
   biggestBlowout: RecordBookEntry | null;
   closestGame: RecordBookEntry | null;
-  longestWinStreak: { ownerName: string; length: number; startSeason: number; endSeason: number } | null;
-  longestLossStreak: { ownerName: string; length: number; startSeason: number; endSeason: number } | null;
+  longestWinStreak: RecordStreak | null;
+  longestLossStreak: RecordStreak | null;
 }
 
 function toEntry(g: GameResult): RecordBookEntry {
   return {
     season: g.season,
     week: g.week,
+    ownerId: g.ownerId,
     ownerName: g.ownerName,
     teamName: g.teamName,
     points: g.points,
+    opponentOwnerId: g.opponentOwnerId,
     opponentOwnerName: g.opponentOwnerName,
     opponentTeamName: g.opponentTeamName,
     opponentPoints: g.opponentPoints,
@@ -195,6 +207,7 @@ export async function getRecordBook(): Promise<RecordBook> {
       } else {
         if (winRun > (longestWinStreak?.length ?? 0)) {
           longestWinStreak = {
+            ownerId: list[i - 1].ownerId,
             ownerName: list[i - 1].ownerName,
             length: winRun,
             startSeason: list[winStart].season,
@@ -210,6 +223,7 @@ export async function getRecordBook(): Promise<RecordBook> {
       } else {
         if (lossRun > (longestLossStreak?.length ?? 0)) {
           longestLossStreak = {
+            ownerId: list[i - 1].ownerId,
             ownerName: list[i - 1].ownerName,
             length: lossRun,
             startSeason: list[lossStart].season,
@@ -222,6 +236,7 @@ export async function getRecordBook(): Promise<RecordBook> {
 
     if (winRun > (longestWinStreak?.length ?? 0)) {
       longestWinStreak = {
+        ownerId: list[list.length - 1].ownerId,
         ownerName: list[list.length - 1].ownerName,
         length: winRun,
         startSeason: list[winStart].season,
@@ -230,6 +245,7 @@ export async function getRecordBook(): Promise<RecordBook> {
     }
     if (lossRun > (longestLossStreak?.length ?? 0)) {
       longestLossStreak = {
+        ownerId: list[list.length - 1].ownerId,
         ownerName: list[list.length - 1].ownerName,
         length: lossRun,
         startSeason: list[lossStart].season,

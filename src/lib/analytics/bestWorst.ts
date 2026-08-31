@@ -14,6 +14,9 @@ export interface SeasonPerformance {
   pointsAgainst: number;
   finalRank: number | null;
   isChampion: boolean;
+  isRunnerUp: boolean;
+  madePlayoffs: boolean;
+  isLastPlace: boolean;
 }
 
 let cache: SeasonPerformance[] | null = null;
@@ -50,6 +53,9 @@ export async function buildSeasonPerformances(): Promise<SeasonPerformance[]> {
         pointsAgainst: s.points_against,
         finalRank: s.final_rank,
         isChampion: !!s.is_champion,
+        isRunnerUp: !!s.is_runner_up,
+        madePlayoffs: !!s.made_playoffs,
+        isLastPlace: !!s.is_last_place,
       };
     })
     .filter((s): s is SeasonPerformance => s !== null && s.wins + s.losses + s.ties > 0);
@@ -99,6 +105,7 @@ export async function championshipSeasons(): Promise<SeasonPerformance[]> {
 export interface ConsistencyRow {
   season: number;
   teamId: number;
+  ownerId: string;
   ownerName: string;
   teamName: string;
   gamesPlayed: number;
@@ -135,6 +142,7 @@ export async function computeConsistency(): Promise<ConsistencyRow[]> {
     rows.push({
       season: meta.season,
       teamId: meta.teamId,
+      ownerId: meta.ownerId,
       ownerName: meta.ownerName,
       teamName: meta.teamName,
       gamesPlayed: teamGames.length,

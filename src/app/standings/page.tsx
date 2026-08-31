@@ -1,9 +1,10 @@
-import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { hasAnyData } from '@/lib/db';
 import { getAllTimeStandings } from '@/lib/analytics/records';
 import { getRecordBook } from '@/lib/analytics/records';
 import { EmptyState } from '@/components/EmptyState';
 import { PointsForBarChart } from '@/components/charts/PointsForBarChart';
+import { OwnerLink } from '@/components/OwnerLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,9 +48,7 @@ export default async function StandingsPage() {
               <tr key={s.ownerId}>
                 <td data-label="#" className="font-semibold text-muted">{i + 1}</td>
                 <td data-label="Owner" className="font-medium">
-                  <Link href={`/teams/${s.ownerId}`} className="hover:text-brand hover:underline">
-                    {s.displayName}
-                  </Link>
+                  <OwnerLink ownerId={s.ownerId}>{s.displayName}</OwnerLink>
                 </td>
                 <td data-label="Record">
                   {s.wins}-{s.losses}
@@ -82,42 +81,92 @@ export default async function StandingsPage() {
             <RecordRow
               label="Most points in a game"
               value={recordBook.mostPointsInGame.points.toFixed(2)}
-              detail={`${recordBook.mostPointsInGame.ownerName} (${recordBook.mostPointsInGame.teamName}) · ${recordBook.mostPointsInGame.season} Week ${recordBook.mostPointsInGame.week}`}
+              detail={
+                <>
+                  <OwnerLink ownerId={recordBook.mostPointsInGame.ownerId}>
+                    {recordBook.mostPointsInGame.ownerName}
+                  </OwnerLink>{' '}
+                  ({recordBook.mostPointsInGame.teamName}) · {recordBook.mostPointsInGame.season} Week{' '}
+                  {recordBook.mostPointsInGame.week}
+                </>
+              }
             />
           )}
           {recordBook.fewestPointsInGame && (
             <RecordRow
               label="Fewest points in a game"
               value={recordBook.fewestPointsInGame.points.toFixed(2)}
-              detail={`${recordBook.fewestPointsInGame.ownerName} (${recordBook.fewestPointsInGame.teamName}) · ${recordBook.fewestPointsInGame.season} Week ${recordBook.fewestPointsInGame.week}`}
+              detail={
+                <>
+                  <OwnerLink ownerId={recordBook.fewestPointsInGame.ownerId}>
+                    {recordBook.fewestPointsInGame.ownerName}
+                  </OwnerLink>{' '}
+                  ({recordBook.fewestPointsInGame.teamName}) · {recordBook.fewestPointsInGame.season} Week{' '}
+                  {recordBook.fewestPointsInGame.week}
+                </>
+              }
             />
           )}
           {recordBook.biggestBlowout && (
             <RecordRow
               label="Biggest blowout"
               value={`${Math.abs(recordBook.biggestBlowout.points - (recordBook.biggestBlowout.opponentPoints ?? 0)).toFixed(2)} pts`}
-              detail={`${recordBook.biggestBlowout.ownerName} ${recordBook.biggestBlowout.points.toFixed(1)} — ${recordBook.biggestBlowout.opponentPoints?.toFixed(1)} ${recordBook.biggestBlowout.opponentOwnerName} · ${recordBook.biggestBlowout.season} Week ${recordBook.biggestBlowout.week}`}
+              detail={
+                <>
+                  <OwnerLink ownerId={recordBook.biggestBlowout.ownerId}>
+                    {recordBook.biggestBlowout.ownerName}
+                  </OwnerLink>{' '}
+                  {recordBook.biggestBlowout.points.toFixed(1)} — {recordBook.biggestBlowout.opponentPoints?.toFixed(1)}{' '}
+                  <OwnerLink ownerId={recordBook.biggestBlowout.opponentOwnerId}>
+                    {recordBook.biggestBlowout.opponentOwnerName}
+                  </OwnerLink>{' '}
+                  · {recordBook.biggestBlowout.season} Week {recordBook.biggestBlowout.week}
+                </>
+              }
             />
           )}
           {recordBook.closestGame && (
             <RecordRow
               label="Closest game"
               value={`${Math.abs(recordBook.closestGame.points - (recordBook.closestGame.opponentPoints ?? 0)).toFixed(2)} pts`}
-              detail={`${recordBook.closestGame.ownerName} ${recordBook.closestGame.points.toFixed(1)} — ${recordBook.closestGame.opponentPoints?.toFixed(1)} ${recordBook.closestGame.opponentOwnerName} · ${recordBook.closestGame.season} Week ${recordBook.closestGame.week}`}
+              detail={
+                <>
+                  <OwnerLink ownerId={recordBook.closestGame.ownerId}>{recordBook.closestGame.ownerName}</OwnerLink>{' '}
+                  {recordBook.closestGame.points.toFixed(1)} — {recordBook.closestGame.opponentPoints?.toFixed(1)}{' '}
+                  <OwnerLink ownerId={recordBook.closestGame.opponentOwnerId}>
+                    {recordBook.closestGame.opponentOwnerName}
+                  </OwnerLink>{' '}
+                  · {recordBook.closestGame.season} Week {recordBook.closestGame.week}
+                </>
+              }
             />
           )}
           {recordBook.longestWinStreak && (
             <RecordRow
               label="Longest win streak"
               value={`${recordBook.longestWinStreak.length} games`}
-              detail={`${recordBook.longestWinStreak.ownerName} · ${recordBook.longestWinStreak.startSeason}–${recordBook.longestWinStreak.endSeason}`}
+              detail={
+                <>
+                  <OwnerLink ownerId={recordBook.longestWinStreak.ownerId}>
+                    {recordBook.longestWinStreak.ownerName}
+                  </OwnerLink>{' '}
+                  · {recordBook.longestWinStreak.startSeason}–{recordBook.longestWinStreak.endSeason}
+                </>
+              }
             />
           )}
           {recordBook.longestLossStreak && (
             <RecordRow
               label="Longest losing streak"
               value={`${recordBook.longestLossStreak.length} games`}
-              detail={`${recordBook.longestLossStreak.ownerName} · ${recordBook.longestLossStreak.startSeason}–${recordBook.longestLossStreak.endSeason}`}
+              detail={
+                <>
+                  <OwnerLink ownerId={recordBook.longestLossStreak.ownerId}>
+                    {recordBook.longestLossStreak.ownerName}
+                  </OwnerLink>{' '}
+                  · {recordBook.longestLossStreak.startSeason}–{recordBook.longestLossStreak.endSeason}
+                </>
+              }
             />
           )}
         </div>
@@ -126,7 +175,7 @@ export default async function StandingsPage() {
   );
 }
 
-function RecordRow({ label, value, detail }: { label: string; value: string; detail: string }) {
+function RecordRow({ label, value, detail }: { label: string; value: string; detail: ReactNode }) {
   return (
     <div className="flex flex-col justify-between gap-1 p-4 sm:flex-row sm:items-center">
       <span className="font-medium">{label}</span>

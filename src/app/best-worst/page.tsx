@@ -8,6 +8,7 @@ import {
   worstSeasonsByWins,
 } from '@/lib/analytics/bestWorst';
 import { EmptyState } from '@/components/EmptyState';
+import { OwnerLink } from '@/components/OwnerLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,7 +62,9 @@ export default async function BestWorstPage() {
               {champions.map((c) => (
                 <tr key={`${c.season}-${c.teamId}`}>
                   <td data-label="Season" className="font-semibold">{c.season}</td>
-                  <td data-label="Champion" className="font-medium">{c.ownerName}</td>
+                  <td data-label="Champion" className="font-medium">
+                    <OwnerLink ownerId={c.ownerId}>{c.ownerName}</OwnerLink>
+                  </td>
                   <td data-label="Team" className="text-muted">{c.teamName}</td>
                   <td data-label="Record">
                     {c.wins}-{c.losses}
@@ -117,7 +120,9 @@ export default async function BestWorstPage() {
                 <tr key={`${r.season}-${r.teamId}`}>
                   <td data-label="Season" className="font-semibold">{r.season}</td>
                   <td data-label="Team" className="font-medium">{r.teamName}</td>
-                  <td data-label="Owner" className="text-muted">{r.ownerName}</td>
+                  <td data-label="Owner" className="text-muted">
+                    <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
+                  </td>
                   <td data-label="Avg Pts">{r.avgPoints.toFixed(1)}</td>
                   <td data-label="Boom Weeks" className="text-accent">{r.boomWeeks}</td>
                   <td data-label="Bust Weeks" className="text-accent-warm">{r.bustWeeks}</td>
@@ -158,7 +163,9 @@ function SeasonTable({
             {rows.map((r) => (
               <tr key={`${r.season}-${r.teamId}`}>
                 <td data-label="Season" className="font-semibold">{r.season}</td>
-                <td data-label="Owner" className="font-medium">{r.ownerName}</td>
+                <td data-label="Owner" className="font-medium">
+                  <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
+                </td>
                 <td data-label="Team" className="text-muted">{r.teamName}</td>
                 <td data-label="Record" className={metric === 'wins' ? 'font-bold text-brand' : ''}>
                   {r.wins}-{r.losses}
@@ -194,7 +201,9 @@ function ConsistencyTable({ rows }: { rows: Awaited<ReturnType<typeof computeCon
             <tr key={`${r.season}-${r.teamId}`}>
               <td data-label="Season" className="font-semibold">{r.season}</td>
               <td data-label="Team" className="font-medium">{r.teamName}</td>
-              <td data-label="Owner" className="text-muted">{r.ownerName}</td>
+              <td data-label="Owner" className="text-muted">
+                <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
+              </td>
               <td data-label="Avg Pts">{r.avgPoints.toFixed(1)}</td>
               <td data-label="Std Dev">{r.stdDev.toFixed(1)}</td>
             </tr>

@@ -3,6 +3,7 @@ import { getDb, setMeta, getMeta } from '@/lib/db';
 import { getCurrentSeasonYear, getConfiguredStartYear, getEspnCredentials } from '@/lib/env';
 import { invalidateGameResultsCache } from '@/lib/analytics/gameResults';
 import { invalidateSeasonPerformancesCache } from '@/lib/analytics/bestWorst';
+import { invalidateAwardsCache } from '@/lib/analytics/awards';
 import {
   discoverAvailableSeasons,
   fetchLeagueSnapshot,
@@ -351,6 +352,7 @@ export async function syncAll(options: { forceSeason?: number } = {}): Promise<S
   await setMeta('last_synced_at', syncedAt);
   invalidateGameResultsCache();
   invalidateSeasonPerformancesCache();
+  invalidateAwardsCache();
 
   return { syncedAt, results };
 }

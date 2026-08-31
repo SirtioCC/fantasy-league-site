@@ -3,6 +3,7 @@ import { getOwners } from '@/lib/db/queries';
 import { buildHeadToHeadMatrix, getRivalry } from '@/lib/analytics/headToHead';
 import { EmptyState } from '@/components/EmptyState';
 import { RivalryPicker } from '@/components/RivalryPicker';
+import { OwnerLink } from '@/components/OwnerLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,14 +31,18 @@ export default async function HeadToHeadPage({
               <tr>
                 <th className="sticky left-0 z-10 bg-surface">Owner ↓ vs →</th>
                 {owners.map((o) => (
-                  <th key={o.owner_id}>{o.display_name}</th>
+                  <th key={o.owner_id}>
+                    <OwnerLink ownerId={o.owner_id}>{o.display_name}</OwnerLink>
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {matrix.map((row) => (
                 <tr key={row.ownerId}>
-                  <td className="sticky left-0 z-10 bg-surface font-medium">{row.ownerName}</td>
+                  <td className="sticky left-0 z-10 bg-surface font-medium">
+                    <OwnerLink ownerId={row.ownerId}>{row.ownerName}</OwnerLink>
+                  </td>
                   {owners.map((o) => {
                     if (o.owner_id === row.ownerId) {
                       return (
@@ -69,12 +74,16 @@ export default async function HeadToHeadPage({
           <div className="card flex flex-col gap-4 p-5">
             <div className="flex flex-wrap items-center justify-center gap-3 text-center sm:gap-6">
               <div className="min-w-0">
-                <div className="truncate text-base font-extrabold sm:text-xl">{rivalry.ownerAName}</div>
+                <div className="truncate text-base font-extrabold sm:text-xl">
+                  <OwnerLink ownerId={rivalry.ownerAId}>{rivalry.ownerAName}</OwnerLink>
+                </div>
                 <div className="text-2xl font-extrabold text-brand sm:text-3xl">{rivalry.ownerAWins}</div>
               </div>
               <div className="text-muted">vs</div>
               <div className="min-w-0">
-                <div className="truncate text-base font-extrabold sm:text-xl">{rivalry.ownerBName}</div>
+                <div className="truncate text-base font-extrabold sm:text-xl">
+                  <OwnerLink ownerId={rivalry.ownerBId}>{rivalry.ownerBName}</OwnerLink>
+                </div>
                 <div className="text-2xl font-extrabold text-brand sm:text-3xl">{rivalry.ownerBWins}</div>
               </div>
               {rivalry.ties > 0 && (

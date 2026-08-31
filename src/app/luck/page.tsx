@@ -4,6 +4,7 @@ import { computeLuckRatings } from '@/lib/analytics/luck';
 import { EmptyState } from '@/components/EmptyState';
 import { SeasonPicker } from '@/components/SeasonPicker';
 import { LuckScatter, type LuckPoint } from '@/components/charts/LuckScatter';
+import { OwnerLink } from '@/components/OwnerLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,9 +21,9 @@ export default async function LuckPage({
 
   const [seasonLuck, allTimeLuck] = await Promise.all([computeLuckRatings(season), computeLuckRatings()]);
 
-  const ownerLuckTotals = new Map<string, { ownerName: string; luck: number; seasons: number }>();
+  const ownerLuckTotals = new Map<string, { ownerId: string; ownerName: string; luck: number; seasons: number }>();
   for (const row of allTimeLuck) {
-    const cur = ownerLuckTotals.get(row.ownerId) ?? { ownerName: row.ownerName, luck: 0, seasons: 0 };
+    const cur = ownerLuckTotals.get(row.ownerId) ?? { ownerId: row.ownerId, ownerName: row.ownerName, luck: 0, seasons: 0 };
     cur.luck += row.luck;
     cur.seasons += 1;
     ownerLuckTotals.set(row.ownerId, cur);
@@ -69,7 +70,9 @@ export default async function LuckPage({
             {seasonLuck.map((r) => (
               <tr key={r.teamId}>
                 <td data-label="Team" className="font-medium">{r.teamName}</td>
-                <td data-label="Owner" className="text-muted">{r.ownerName}</td>
+                <td data-label="Owner" className="text-muted">
+                  <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
+                </td>
                 <td data-label="Actual W">{r.actualWins.toFixed(1)}</td>
                 <td data-label="Expected W">{r.expectedWins.toFixed(2)}</td>
                 <td
@@ -119,8 +122,10 @@ export default async function LuckPage({
             </thead>
             <tbody>
               {allTimeLeaderboard.map((o) => (
-                <tr key={o.ownerName}>
-                  <td data-label="Owner" className="font-medium">{o.ownerName}</td>
+                <tr key={o.ownerId}>
+                  <td data-label="Owner" className="font-medium">
+                    <OwnerLink ownerId={o.ownerId}>{o.ownerName}</OwnerLink>
+                  </td>
                   <td data-label="Seasons">{o.seasons}</td>
                   <td
                     data-label="Cumulative Luck"

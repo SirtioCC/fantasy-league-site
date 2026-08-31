@@ -1,11 +1,14 @@
 'use client';
 
+import Link from 'next/link';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
+import { ownerIdToSlug } from '@/lib/ownerSlug';
 
 export interface SparklineSeries {
   key: string;
   label: string;
   sublabel?: string;
+  ownerId?: string;
   points: { week: number; value: number | null }[];
 }
 
@@ -37,7 +40,17 @@ export function SparklineGrid({
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="truncate text-sm font-bold">{s.label}</div>
-                {s.sublabel && <div className="truncate text-xs text-muted">{s.sublabel}</div>}
+                {s.sublabel && (
+                  <div className="truncate text-xs text-muted">
+                    {s.ownerId ? (
+                      <Link href={`/teams/${ownerIdToSlug(s.ownerId)}`} className="hover:text-brand hover:underline">
+                        {s.sublabel}
+                      </Link>
+                    ) : (
+                      s.sublabel
+                    )}
+                  </div>
+                )}
               </div>
               {trendUp !== null && (
                 <span

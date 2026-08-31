@@ -116,3 +116,53 @@ export async function getRivalry(ownerAId: string, ownerBId: string): Promise<Ri
     games: rivalryGames,
   };
 }
+
+export interface RivalrySummaryEntry {
+  opponentOwnerId: string;
+  opponentOwnerName: string;
+  wins: number;
+  losses: number;
+  ties: number;
+  games: number;
+  winPct: number;
+}
+
+export interface OwnerRivalrySummary {
+  mostPlayed: RivalrySummaryEntry | null;
+  bestRecord: RivalrySummaryEntry | null;
+  worstRecord: RivalrySummaryEntry | null;
+}
+
+/** For one owner: who they've played most, who they dominate, and who
+ * dominates them (minimum 3 meetings so a 1-0 fluke doesn't win the title). */
+export async function getOwnerRivalrySummary(ownerId: string): Promise<OwnerRivalrySummary> {
+  const matrix = await buildHeadToHeadMatrix();
+  const row = matrix.find((r) => r.ownerId === ownerId);
+  if (!row) return { mostPlayed: null, bestRecord: null, worstRecord: null };
+
+  const owners = new Map(matrix.map((r) => [r.ownerId, r.ownerName]));
+
+  const entries: RivalrySummaryEntry[] = Array.from(row.vs.values()).map((cell) => {
+    const games = cell.wins + cell.losses + cell.ties;
+    return {
+      opponentOwnerId: cell.opponentOwnerId,
+      opponentOwnerName: owners.get(cell.opponentOwnerId) ?? 'Unknown Owner',
+      wins: cell.wins,
+      losses: cell.losses,
+      ties: cell.ties,
+      games,
+      winPct: games > 0 ? (cell.wins + cell.ties * 0.5) / games : 0,
+    };
+  });
+
+  if (entries.length === 0) return { mostPlayed: null, bestRecord: null, worstRecord: null };
+
+  const mostPlayed = entries.slice().sort((a, b) => b.games - a.games)[0];
+
+  const eligible = entries.filter((e) => e.games >= 3);
+  const pool = eligible.length > 0 ? eligible : entries;
+  const bestRecord = pool.slice().sort((a, b) => b.winPct - a.winPct || b.games - a.games)[0];
+  const worstRecord = pool.slice().sort((a, b) => a.winPct - b.winPct || b.games - a.games)[0];
+
+  return { mostPlayed, bestRecord, worstRecord };
+}

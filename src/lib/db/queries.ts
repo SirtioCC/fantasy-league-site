@@ -94,7 +94,13 @@ type SqlArg = string | number | null;
 async function all<T>(sql: string, args: SqlArg[] = []): Promise<T[]> {
   const db = await getDb();
   const result = await db.execute({ sql, args });
-  return result.rows as unknown as T[];
+  // libsql's Row objects carry hidden non-enumerable numeric-index
+  // properties (they can be used array-style) alongside the named columns.
+  // React's Server->Client serialization requires every own property to be
+  // enumerable, so passing a Row straight to a Client Component fails
+  // ("Only plain objects can be passed..."). Spreading copies only the
+  // enumerable (named-column) properties, producing a genuinely plain row.
+  return result.rows.map((row) => ({ ...row })) as unknown as T[];
 }
 
 async function get<T>(sql: string, args: SqlArg[] = []): Promise<T | null> {

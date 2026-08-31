@@ -7,6 +7,7 @@ import { getRecordBook } from '@/lib/analytics/records';
 import { EmptyState } from '@/components/EmptyState';
 import { StatCard } from '@/components/StatCard';
 import { LEAGUE_NAME, LEAGUE_TAGLINE } from '@/lib/branding';
+import { OwnerLink } from '@/components/OwnerLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +69,9 @@ export default async function DashboardPage() {
                     {s.teamName}
                     {s.isChampion && <span className="ml-1.5">🏆</span>}
                   </td>
-                  <td data-label="Owner" className="text-muted">{s.ownerName}</td>
+                  <td data-label="Owner" className="text-muted">
+                    <OwnerLink ownerId={s.ownerId}>{s.ownerName}</OwnerLink>
+                  </td>
                   <td data-label="Record">
                     {s.wins}-{s.losses}
                     {s.ties ? `-${s.ties}` : ''}
@@ -94,7 +97,9 @@ export default async function DashboardPage() {
             <div key={r.teamId} className="card flex flex-col gap-1 p-4">
               <span className="text-xs font-semibold text-muted">#{r.rank}</span>
               <span className="font-bold">{r.teamName}</span>
-              <span className="text-xs text-muted">{r.ownerName}</span>
+              <span className="text-xs text-muted">
+                <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
+              </span>
               <span className="text-xl font-extrabold text-brand">{r.powerScore.toFixed(1)}</span>
               <span className="text-xs text-muted">{r.record}</span>
             </div>
@@ -109,7 +114,14 @@ export default async function DashboardPage() {
             <StatCard
               label="Most Points in a Game"
               value={recordBook.mostPointsInGame.points.toFixed(1)}
-              sub={`${recordBook.mostPointsInGame.ownerName} · ${recordBook.mostPointsInGame.season} Wk ${recordBook.mostPointsInGame.week}`}
+              sub={
+                <>
+                  <OwnerLink ownerId={recordBook.mostPointsInGame.ownerId}>
+                    {recordBook.mostPointsInGame.ownerName}
+                  </OwnerLink>{' '}
+                  · {recordBook.mostPointsInGame.season} Wk {recordBook.mostPointsInGame.week}
+                </>
+              }
               accent="accent"
             />
           )}
@@ -119,7 +131,18 @@ export default async function DashboardPage() {
               value={Math.abs(
                 recordBook.biggestBlowout.points - (recordBook.biggestBlowout.opponentPoints ?? 0),
               ).toFixed(1)}
-              sub={`${recordBook.biggestBlowout.ownerName} beat ${recordBook.biggestBlowout.opponentOwnerName} · ${recordBook.biggestBlowout.season} Wk ${recordBook.biggestBlowout.week}`}
+              sub={
+                <>
+                  <OwnerLink ownerId={recordBook.biggestBlowout.ownerId}>
+                    {recordBook.biggestBlowout.ownerName}
+                  </OwnerLink>{' '}
+                  beat{' '}
+                  <OwnerLink ownerId={recordBook.biggestBlowout.opponentOwnerId}>
+                    {recordBook.biggestBlowout.opponentOwnerName}
+                  </OwnerLink>{' '}
+                  · {recordBook.biggestBlowout.season} Wk {recordBook.biggestBlowout.week}
+                </>
+              }
               accent="warm"
             />
           )}
@@ -129,7 +152,15 @@ export default async function DashboardPage() {
               value={Math.abs(
                 recordBook.closestGame.points - (recordBook.closestGame.opponentPoints ?? 0),
               ).toFixed(2)}
-              sub={`${recordBook.closestGame.ownerName} vs ${recordBook.closestGame.opponentOwnerName} · ${recordBook.closestGame.season} Wk ${recordBook.closestGame.week}`}
+              sub={
+                <>
+                  <OwnerLink ownerId={recordBook.closestGame.ownerId}>{recordBook.closestGame.ownerName}</OwnerLink> vs{' '}
+                  <OwnerLink ownerId={recordBook.closestGame.opponentOwnerId}>
+                    {recordBook.closestGame.opponentOwnerName}
+                  </OwnerLink>{' '}
+                  · {recordBook.closestGame.season} Wk {recordBook.closestGame.week}
+                </>
+              }
               accent="gold"
             />
           )}
@@ -137,21 +168,42 @@ export default async function DashboardPage() {
             <StatCard
               label="Longest Win Streak"
               value={`${recordBook.longestWinStreak.length} games`}
-              sub={`${recordBook.longestWinStreak.ownerName} · ${recordBook.longestWinStreak.startSeason}–${recordBook.longestWinStreak.endSeason}`}
+              sub={
+                <>
+                  <OwnerLink ownerId={recordBook.longestWinStreak.ownerId}>
+                    {recordBook.longestWinStreak.ownerName}
+                  </OwnerLink>{' '}
+                  · {recordBook.longestWinStreak.startSeason}–{recordBook.longestWinStreak.endSeason}
+                </>
+              }
             />
           )}
           {recordBook.fewestPointsInGame && (
             <StatCard
               label="Fewest Points in a Game"
               value={recordBook.fewestPointsInGame.points.toFixed(1)}
-              sub={`${recordBook.fewestPointsInGame.ownerName} · ${recordBook.fewestPointsInGame.season} Wk ${recordBook.fewestPointsInGame.week}`}
+              sub={
+                <>
+                  <OwnerLink ownerId={recordBook.fewestPointsInGame.ownerId}>
+                    {recordBook.fewestPointsInGame.ownerName}
+                  </OwnerLink>{' '}
+                  · {recordBook.fewestPointsInGame.season} Wk {recordBook.fewestPointsInGame.week}
+                </>
+              }
             />
           )}
           {recordBook.longestLossStreak && (
             <StatCard
               label="Longest Losing Streak"
               value={`${recordBook.longestLossStreak.length} games`}
-              sub={`${recordBook.longestLossStreak.ownerName} · ${recordBook.longestLossStreak.startSeason}–${recordBook.longestLossStreak.endSeason}`}
+              sub={
+                <>
+                  <OwnerLink ownerId={recordBook.longestLossStreak.ownerId}>
+                    {recordBook.longestLossStreak.ownerName}
+                  </OwnerLink>{' '}
+                  · {recordBook.longestLossStreak.startSeason}–{recordBook.longestLossStreak.endSeason}
+                </>
+              }
             />
           )}
         </div>

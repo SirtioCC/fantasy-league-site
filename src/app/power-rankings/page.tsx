@@ -5,6 +5,7 @@ import { getAllGameResults } from '@/lib/analytics/gameResults';
 import { EmptyState } from '@/components/EmptyState';
 import { SparklineGrid, type SparklineSeries } from '@/components/charts/SparklineGrid';
 import { SeasonPicker } from '@/components/SeasonPicker';
+import { OwnerLink } from '@/components/OwnerLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,7 @@ export default async function PowerRankingsPage({
     key: String(r.teamId),
     label: r.teamName,
     sublabel: r.ownerName,
+    ownerId: r.ownerId,
     points: weeks.map((week) => ({
       week,
       value: history.get(week)?.find((row) => row.teamId === r.teamId)?.powerScore ?? null,
@@ -44,6 +46,7 @@ export default async function PowerRankingsPage({
     key: String(r.teamId),
     label: r.teamName,
     sublabel: r.ownerName,
+    ownerId: r.ownerId,
     points: scoringWeeks.map((week) => ({
       week,
       value: gamesByTeamWeek.get(`${r.teamId}:${week}`) ?? null,
@@ -82,7 +85,9 @@ export default async function PowerRankingsPage({
               <tr key={r.teamId}>
                 <td data-label="#" className="font-semibold text-muted">{r.rank}</td>
                 <td data-label="Team" className="font-medium">{r.teamName}</td>
-                <td data-label="Owner" className="text-muted">{r.ownerName}</td>
+                <td data-label="Owner" className="text-muted">
+                  <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
+                </td>
                 <td data-label="Power Score" className="font-bold text-brand">{r.powerScore.toFixed(1)}</td>
                 <td data-label="Record">{r.record}</td>
                 <td data-label="Avg Pts">{r.avgPoints.toFixed(1)}</td>

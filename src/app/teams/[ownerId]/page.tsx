@@ -3,6 +3,10 @@ import { hasAnyData } from '@/lib/db';
 import { getOwnerProfile } from '@/lib/analytics/ownerProfile';
 import { StatCard } from '@/components/StatCard';
 import { EmptyState } from '@/components/EmptyState';
+import { OwnerLink } from '@/components/OwnerLink';
+import { CareerTimeline } from '@/components/CareerTimeline';
+import { CareerTrendChart } from '@/components/charts/CareerTrendChart';
+import { slugToOwnerId } from '@/lib/ownerSlug';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +17,8 @@ export default async function OwnerProfilePage({
 }) {
   if (!(await hasAnyData())) return <EmptyState />;
 
-  const { ownerId } = await params;
+  const { ownerId: ownerIdSlug } = await params;
+  const ownerId = slugToOwnerId(ownerIdSlug);
   const profile = await getOwnerProfile(ownerId);
   if (!profile) notFound();
 
@@ -29,6 +34,31 @@ export default async function OwnerProfilePage({
           </p>
         )}
       </div>
+
+      {profile.timeline.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <CareerTimeline entries={profile.timeline} />
+        </section>
+      )}
+
+      {profile.awards.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-bold">Awards</h2>
+          <div className="flex flex-wrap gap-3">
+            {profile.awards.map((a) => (
+              <div key={a.label} className="card flex items-center gap-3 p-3">
+                <span className="text-2xl" aria-hidden="true">
+                  {a.emoji}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-sm font-bold">{a.label}</div>
+                  <div className="text-xs text-muted">{a.description}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {summary && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -68,6 +98,64 @@ export default async function OwnerProfilePage({
           </div>
         )}
       </section>
+
+      {profile.careerTrend.length > 1 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-bold">Career Trend</h2>
+          <CareerTrendChart points={profile.careerTrend} />
+        </section>
+      )}
+
+      {(profile.recordsHeld.length > 0 ||
+        profile.rivalrySummary.mostPlayed ||
+        profile.rivalrySummary.bestRecord ||
+        profile.rivalrySummary.worstRecord) && (
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {(profile.rivalrySummary.mostPlayed ||
+            profile.rivalrySummary.bestRecord ||
+            profile.rivalrySummary.worstRecord) && (
+            <div className="card flex flex-col gap-3 p-4">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Rivalries</h3>
+              {profile.rivalrySummary.mostPlayed && (
+                <RivalryLine
+                  label="Most played"
+                  ownerId={profile.rivalrySummary.mostPlayed.opponentOwnerId}
+                  ownerName={profile.rivalrySummary.mostPlayed.opponentOwnerName}
+                  entry={profile.rivalrySummary.mostPlayed}
+                />
+              )}
+              {profile.rivalrySummary.bestRecord && (
+                <RivalryLine
+                  label="Best record vs."
+                  ownerId={profile.rivalrySummary.bestRecord.opponentOwnerId}
+                  ownerName={profile.rivalrySummary.bestRecord.opponentOwnerName}
+                  entry={profile.rivalrySummary.bestRecord}
+                />
+              )}
+              {profile.rivalrySummary.worstRecord && (
+                <RivalryLine
+                  label="Worst record vs."
+                  ownerId={profile.rivalrySummary.worstRecord.opponentOwnerId}
+                  ownerName={profile.rivalrySummary.worstRecord.opponentOwnerName}
+                  entry={profile.rivalrySummary.worstRecord}
+                />
+              )}
+            </div>
+          )}
+
+          {profile.recordsHeld.length > 0 && (
+            <div className="card flex flex-col divide-y divide-border p-0">
+              <h3 className="p-4 pb-2 text-sm font-bold uppercase tracking-wide text-muted">Records Held</h3>
+              {profile.recordsHeld.map((r) => (
+                <div key={r.label} className="flex flex-col gap-0.5 px-4 py-3 text-sm">
+                  <span className="font-medium">{r.label}</span>
+                  <span className="text-xs text-muted">{r.detail}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold">Season by Season</h2>
@@ -149,6 +237,31 @@ export default async function OwnerProfilePage({
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+function RivalryLine({
+  label,
+  ownerId,
+  ownerName,
+  entry,
+}: {
+  label: string;
+  ownerId: string;
+  ownerName: string;
+  entry: { wins: number; losses: number; ties: number; games: number };
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <span className="text-muted">{label}</span>
+      <span className="font-medium">
+        <OwnerLink ownerId={ownerId}>{ownerName}</OwnerLink>{' '}
+        <span className="text-muted">
+          ({entry.wins}-{entry.losses}
+          {entry.ties ? `-${entry.ties}` : ''})
+        </span>
+      </span>
     </div>
   );
 }

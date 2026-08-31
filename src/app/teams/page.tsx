@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { hasAnyData } from '@/lib/db';
 import { getAllTimeStandings } from '@/lib/analytics/records';
 import { EmptyState } from '@/components/EmptyState';
+import { ownerIdToSlug } from '@/lib/ownerSlug';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ export default async function TeamsIndexPage() {
         {owners.map((o) => (
           <Link
             key={o.ownerId}
-            href={`/teams/${o.ownerId}`}
+            href={`/teams/${ownerIdToSlug(o.ownerId)}`}
             className="card flex flex-col gap-2 p-5 transition-shadow hover:shadow-md"
           >
             <span className="text-lg font-bold">{o.displayName}</span>
