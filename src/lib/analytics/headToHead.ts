@@ -16,9 +16,9 @@ export interface HeadToHeadRow {
   vs: Map<string, HeadToHeadCell>;
 }
 
-export function buildHeadToHeadMatrix(): HeadToHeadRow[] {
-  const owners = getOwners();
-  const games = getAllGameResults().filter((g) => g.result !== 'BYE' && g.opponentOwnerId);
+export async function buildHeadToHeadMatrix(): Promise<HeadToHeadRow[]> {
+  const [owners, allGames] = await Promise.all([getOwners(), getAllGameResults()]);
+  const games = allGames.filter((g) => g.result !== 'BYE' && g.opponentOwnerId);
 
   const rows = new Map<string, HeadToHeadRow>();
   for (const o of owners) {
@@ -73,13 +73,14 @@ export interface Rivalry {
   games: RivalryGame[];
 }
 
-export function getRivalry(ownerAId: string, ownerBId: string): Rivalry | null {
-  const owners = new Map(getOwners().map((o) => [o.owner_id, o.display_name]));
+export async function getRivalry(ownerAId: string, ownerBId: string): Promise<Rivalry | null> {
+  const [ownerRows, allGames] = await Promise.all([getOwners(), getAllGameResults()]);
+  const owners = new Map(ownerRows.map((o) => [o.owner_id, o.display_name]));
   const ownerAName = owners.get(ownerAId);
   const ownerBName = owners.get(ownerBId);
   if (!ownerAName || !ownerBName) return null;
 
-  const games = getAllGameResults().filter(
+  const games = allGames.filter(
     (g) => g.result !== 'BYE' && g.ownerId === ownerAId && g.opponentOwnerId === ownerBId,
   );
 

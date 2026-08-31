@@ -24,12 +24,18 @@ export interface OwnerProfile {
   favoritePositions: { position: string; count: number }[];
 }
 
-export function getOwnerProfile(ownerId: string): OwnerProfile | null {
-  const owner = getOwner(ownerId);
+export async function getOwnerProfile(ownerId: string): Promise<OwnerProfile | null> {
+  const owner = await getOwner(ownerId);
   if (!owner) return null;
 
-  const summary = getAllTimeStandings().find((o) => o.ownerId === ownerId) ?? null;
-  const seasons = buildSeasonPerformances()
+  const [allTimeStandings, allSeasonPerformances, ownerTeams] = await Promise.all([
+    getAllTimeStandings(),
+    buildSeasonPerformances(),
+    getTeamsForOwner(ownerId),
+  ]);
+
+  const summary = allTimeStandings.find((o) => o.ownerId === ownerId) ?? null;
+  const seasons = allSeasonPerformances
     .filter((s) => s.ownerId === ownerId)
     .sort((a, b) => b.season - a.season);
 
@@ -37,34 +43,34 @@ export function getOwnerProfile(ownerId: string): OwnerProfile | null {
   const bestSeason = bySeasonScore[0] ?? null;
   const worstSeason = bySeasonScore[bySeasonScore.length - 1] ?? null;
 
-  const ownerTeams = getTeamsForOwner(ownerId);
-  const draftHistory: OwnerDraftPick[] = [];
-  const positionCounts = new Map<string, number>();
+  const perTeamPicks = await Promise.all(
+    ownerTeams.map(async (team) => {
+      const picks = (await getDraftPicksForSeason(team.season)).filter((p) => p.team_id === team.team_id);
+      if (picks.length === 0) return [];
+      const players = await getPlayersMap(team.season);
 
-  for (const team of ownerTeams) {
-    const picks = getDraftPicksForSeason(team.season).filter((p) => p.team_id === team.team_id);
-    if (picks.length === 0) continue;
-    const players = getPlayersMap(team.season);
-
-    for (const pick of picks) {
-      const player = pick.player_id ? players.get(pick.player_id) : undefined;
-      const position = player?.position ?? null;
-      if (position) positionCounts.set(position, (positionCounts.get(position) ?? 0) + 1);
-
-      draftHistory.push({
-        season: team.season,
-        round: pick.round_id,
-        overallPick: pick.overall_pick,
-        playerName: player?.full_name ?? (pick.player_id ? `Player #${pick.player_id}` : 'Unknown'),
-        position,
-        proTeam: player?.pro_team ?? null,
-        keeper: !!pick.keeper,
-        bidAmount: pick.bid_amount,
+      return picks.map((pick): OwnerDraftPick => {
+        const player = pick.player_id ? players.get(pick.player_id) : undefined;
+        return {
+          season: team.season,
+          round: pick.round_id,
+          overallPick: pick.overall_pick,
+          playerName: player?.full_name ?? (pick.player_id ? `Player #${pick.player_id}` : 'Unknown'),
+          position: player?.position ?? null,
+          proTeam: player?.pro_team ?? null,
+          keeper: !!pick.keeper,
+          bidAmount: pick.bid_amount,
+        };
       });
-    }
-  }
+    }),
+  );
 
-  draftHistory.sort((a, b) => b.season - a.season || a.overallPick - b.overallPick);
+  const draftHistory = perTeamPicks.flat().sort((a, b) => b.season - a.season || a.overallPick - b.overallPick);
+
+  const positionCounts = new Map<string, number>();
+  for (const pick of draftHistory) {
+    if (pick.position) positionCounts.set(pick.position, (positionCounts.get(pick.position) ?? 0) + 1);
+  }
 
   const favoritePositions = Array.from(positionCounts.entries())
     .map(([position, count]) => ({ position, count }))

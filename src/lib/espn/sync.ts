@@ -1,5 +1,8 @@
+import type { InStatement } from '@libsql/client';
 import { getDb, setMeta, getMeta } from '@/lib/db';
 import { getCurrentSeasonYear, getConfiguredStartYear, getEspnCredentials } from '@/lib/env';
+import { invalidateGameResultsCache } from '@/lib/analytics/gameResults';
+import { invalidateSeasonPerformancesCache } from '@/lib/analytics/bestWorst';
 import {
   discoverAvailableSeasons,
   fetchLeagueSnapshot,
@@ -36,7 +39,7 @@ async function resolveSeasonsToSync(forceSeason?: number): Promise<number[]> {
   const currentYear = getCurrentSeasonYear();
   const minSeason = getConfiguredStartYear() ?? DEFAULT_MIN_SEASON;
 
-  let earliest = getMeta('earliest_season');
+  let earliest = await getMeta('earliest_season');
   if (!earliest) {
     const found = await discoverAvailableSeasons(currentYear, minSeason);
     if (found.length === 0) {
@@ -45,7 +48,7 @@ async function resolveSeasonsToSync(forceSeason?: number): Promise<number[]> {
       );
     }
     const earliestFound = found[found.length - 1];
-    setMeta('earliest_season', String(earliestFound));
+    await setMeta('earliest_season', String(earliestFound));
     earliest = String(earliestFound);
   }
 
@@ -55,17 +58,28 @@ async function resolveSeasonsToSync(forceSeason?: number): Promise<number[]> {
   return seasons;
 }
 
-function upsertOwner(displayName: string, ownerId: string) {
-  getDb()
-    .prepare(
-      `INSERT INTO owners (owner_id, display_name) VALUES (?, ?)
-       ON CONFLICT(owner_id) DO UPDATE SET display_name = excluded.display_name`,
-    )
-    .run(ownerId, displayName);
+/** Always-overwrite upsert — used for members, whose displayName from ESPN
+ * is always authoritative. */
+function upsertOwnerStatement(displayName: string, ownerId: string): InStatement {
+  return {
+    sql: `INSERT INTO owners (owner_id, display_name) VALUES (?, ?)
+          ON CONFLICT(owner_id) DO UPDATE SET display_name = excluded.display_name`,
+    args: [ownerId, displayName],
+  };
 }
 
-function syncSeasonCore(season: number, league: EspnLeagueResponse): void {
-  const db = getDb();
+/** Insert-only fallback — used for a team owner ESPN didn't also list as a
+ * league member, so we don't clobber a real name with a generic one. */
+function insertOwnerIfMissingStatement(displayName: string, ownerId: string): InStatement {
+  return {
+    sql: `INSERT INTO owners (owner_id, display_name) VALUES (?, ?)
+          ON CONFLICT(owner_id) DO NOTHING`,
+    args: [ownerId, displayName],
+  };
+}
+
+async function syncSeasonCore(season: number, league: EspnLeagueResponse): Promise<void> {
+  const db = await getDb();
   const currentYear = getCurrentSeasonYear();
   const isActive = season === currentYear && !!league.status?.isActive;
   const teamCount = league.teams?.length ?? 0;
@@ -73,181 +87,184 @@ function syncSeasonCore(season: number, league: EspnLeagueResponse): void {
   const regularSeasonWeeks = league.settings?.scheduleSettings?.regularSeasonMatchupPeriodCount ?? 0;
   const seasonComplete = !isActive && (league.status?.finalScoringPeriod ?? 0) > 0;
 
-  const run = db.transaction(() => {
-    db.prepare(
-      `INSERT INTO seasons (season, league_name, current_matchup_period, final_scoring_period, regular_season_weeks, playoff_team_count, team_count, is_active, synced_at)
-       VALUES (@season, @league_name, @current_matchup_period, @final_scoring_period, @regular_season_weeks, @playoff_team_count, @team_count, @is_active, @synced_at)
-       ON CONFLICT(season) DO UPDATE SET
-         league_name = excluded.league_name,
-         current_matchup_period = excluded.current_matchup_period,
-         final_scoring_period = excluded.final_scoring_period,
-         regular_season_weeks = excluded.regular_season_weeks,
-         playoff_team_count = excluded.playoff_team_count,
-         team_count = excluded.team_count,
-         is_active = excluded.is_active,
-         synced_at = excluded.synced_at`,
-    ).run({
+  const statements: InStatement[] = [];
+
+  statements.push({
+    sql: `INSERT INTO seasons (season, league_name, current_matchup_period, final_scoring_period, regular_season_weeks, playoff_team_count, team_count, is_active, synced_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(season) DO UPDATE SET
+            league_name = excluded.league_name,
+            current_matchup_period = excluded.current_matchup_period,
+            final_scoring_period = excluded.final_scoring_period,
+            regular_season_weeks = excluded.regular_season_weeks,
+            playoff_team_count = excluded.playoff_team_count,
+            team_count = excluded.team_count,
+            is_active = excluded.is_active,
+            synced_at = excluded.synced_at`,
+    args: [
       season,
-      league_name: league.settings?.name ?? null,
-      current_matchup_period: league.status?.currentMatchupPeriod ?? null,
-      final_scoring_period: league.status?.finalScoringPeriod ?? null,
-      regular_season_weeks: regularSeasonWeeks,
-      playoff_team_count: playoffTeamCount,
-      team_count: teamCount,
-      is_active: isActive ? 1 : 0,
-      synced_at: new Date().toISOString(),
-    });
-
-    for (const member of league.members ?? []) {
-      const displayName =
-        member.displayName?.trim() ||
-        [member.firstName, member.lastName].filter(Boolean).join(' ').trim() ||
-        `Owner ${member.id.slice(0, 6)}`;
-      upsertOwner(displayName, member.id);
-    }
-
-    // Only WINNERS_BRACKET counts as "made the playoffs" — teams that miss
-    // the cut still play postseason games, but in LOSERS_CONSOLATION_LADDER,
-    // which is not the playoffs.
-    const teamIdToPlayoffTierSeen = new Map<number, boolean>();
-    for (const item of league.schedule ?? []) {
-      if (item.playoffTierType === 'WINNERS_BRACKET') {
-        if (item.home) teamIdToPlayoffTierSeen.set(item.home.teamId, true);
-        if (item.away) teamIdToPlayoffTierSeen.set(item.away.teamId, true);
-      }
-    }
-
-    for (const team of league.teams ?? []) {
-      const ownerId = ownerIdForTeam(team);
-      if (!db.prepare('SELECT 1 FROM owners WHERE owner_id = ?').get(ownerId)) {
-        upsertOwner(`Owner ${ownerId.slice(0, 6)}`, ownerId);
-      }
-
-      db.prepare(
-        `INSERT INTO teams (season, team_id, owner_id, team_name, abbrev, logo_url)
-         VALUES (?, ?, ?, ?, ?, ?)
-         ON CONFLICT(season, team_id) DO UPDATE SET
-           owner_id = excluded.owner_id,
-           team_name = excluded.team_name,
-           abbrev = excluded.abbrev,
-           logo_url = excluded.logo_url`,
-      ).run(season, team.id, ownerId, teamDisplayName(team), team.abbrev ?? null, team.logo ?? null);
-
-      const rec = team.record?.overall;
-      const finalRank =
-        seasonComplete && team.rankCalculatedFinal && team.rankCalculatedFinal > 0
-          ? team.rankCalculatedFinal
-          : null;
-      const madePlayoffs = teamIdToPlayoffTierSeen.get(team.id) ? 1 : 0;
-
-      db.prepare(
-        `INSERT INTO standings (season, team_id, wins, losses, ties, points_for, points_against, final_rank, playoff_seed, made_playoffs, is_champion, is_runner_up, is_third_place, is_last_place, streak_type, streak_length)
-         VALUES (@season, @team_id, @wins, @losses, @ties, @points_for, @points_against, @final_rank, @playoff_seed, @made_playoffs, @is_champion, @is_runner_up, @is_third_place, @is_last_place, @streak_type, @streak_length)
-         ON CONFLICT(season, team_id) DO UPDATE SET
-           wins = excluded.wins, losses = excluded.losses, ties = excluded.ties,
-           points_for = excluded.points_for, points_against = excluded.points_against,
-           final_rank = excluded.final_rank, playoff_seed = excluded.playoff_seed,
-           made_playoffs = excluded.made_playoffs, is_champion = excluded.is_champion,
-           is_runner_up = excluded.is_runner_up, is_third_place = excluded.is_third_place,
-           is_last_place = excluded.is_last_place, streak_type = excluded.streak_type,
-           streak_length = excluded.streak_length`,
-      ).run({
-        season,
-        team_id: team.id,
-        wins: rec?.wins ?? 0,
-        losses: rec?.losses ?? 0,
-        ties: rec?.ties ?? 0,
-        points_for: rec?.pointsFor ?? 0,
-        points_against: rec?.pointsAgainst ?? 0,
-        final_rank: finalRank,
-        playoff_seed: team.playoffSeed ?? null,
-        made_playoffs: madePlayoffs,
-        is_champion: finalRank === 1 ? 1 : 0,
-        is_runner_up: finalRank === 2 ? 1 : 0,
-        is_third_place: finalRank === 3 ? 1 : 0,
-        is_last_place: finalRank !== null && finalRank === teamCount ? 1 : 0,
-        streak_type: rec?.streakType ?? null,
-        streak_length: rec?.streakLength ?? null,
-      });
-    }
-
-    const byWeek = new Map<number, EspnScheduleItem[]>();
-    for (const item of league.schedule ?? []) {
-      const list = byWeek.get(item.matchupPeriodId) ?? [];
-      list.push(item);
-      byWeek.set(item.matchupPeriodId, list);
-    }
-
-    db.prepare('DELETE FROM matchups WHERE season = ?').run(season);
-    const insertMatchup = db.prepare(
-      `INSERT INTO matchups (season, week, matchup_id, home_team_id, home_score, away_team_id, away_score, winner, playoff_tier_type, is_playoff, duration_weeks)
-       VALUES (@season, @week, @matchup_id, @home_team_id, @home_score, @away_team_id, @away_score, @winner, @playoff_tier_type, @is_playoff, @duration_weeks)`,
-    );
-    for (const [week, items] of byWeek) {
-      items.forEach((item, idx) => {
-        const homeScore = item.home?.totalPoints ?? null;
-        const awayScore = item.away?.totalPoints ?? null;
-        // ESPN sometimes auto-generates a full matchup schedule for a
-        // league year even when no games were ever actually played/scored
-        // (e.g. a dormant season), leaving every matchup at an impossible
-        // 0.0-0.0. A real fantasy score is never exactly zero, so treat
-        // that combination as an unplayed phantom row and skip it.
-        if ((homeScore ?? 0) === 0 && (awayScore ?? 0) === 0) return;
-
-        // Some matchup periods (typically a championship round) combine
-        // multiple real weeks into one cumulative-score "game" — detect
-        // that from the per-scoring-period breakdown so single-week
-        // records (most/fewest points, biggest blowout, closest game)
-        // don't get skewed by a 2-week combined total.
-        const homeWeeks = Object.keys(item.home?.pointsByScoringPeriod ?? {}).length;
-        const awayWeeks = Object.keys(item.away?.pointsByScoringPeriod ?? {}).length;
-        const durationWeeks = Math.max(homeWeeks, awayWeeks, 1);
-
-        insertMatchup.run({
-          season,
-          week,
-          matchup_id: idx,
-          home_team_id: item.home?.teamId ?? null,
-          home_score: homeScore,
-          away_team_id: item.away?.teamId ?? null,
-          away_score: awayScore,
-          winner: item.winner ?? null,
-          playoff_tier_type: item.playoffTierType ?? 'NONE',
-          is_playoff: item.playoffTierType === 'WINNERS_BRACKET' ? 1 : 0,
-          duration_weeks: durationWeeks,
-        });
-      });
-    }
+      league.settings?.name ?? null,
+      league.status?.currentMatchupPeriod ?? null,
+      league.status?.finalScoringPeriod ?? null,
+      regularSeasonWeeks,
+      playoffTeamCount,
+      teamCount,
+      isActive ? 1 : 0,
+      new Date().toISOString(),
+    ],
   });
 
-  run();
+  for (const member of league.members ?? []) {
+    const displayName =
+      member.displayName?.trim() ||
+      [member.firstName, member.lastName].filter(Boolean).join(' ').trim() ||
+      `Owner ${member.id.slice(0, 6)}`;
+    statements.push(upsertOwnerStatement(displayName, member.id));
+  }
+
+  // Only WINNERS_BRACKET counts as "made the playoffs" — teams that miss
+  // the cut still play postseason games, but in LOSERS_CONSOLATION_LADDER,
+  // which is not the playoffs.
+  const teamIdToPlayoffTierSeen = new Map<number, boolean>();
+  for (const item of league.schedule ?? []) {
+    if (item.playoffTierType === 'WINNERS_BRACKET') {
+      if (item.home) teamIdToPlayoffTierSeen.set(item.home.teamId, true);
+      if (item.away) teamIdToPlayoffTierSeen.set(item.away.teamId, true);
+    }
+  }
+
+  for (const team of league.teams ?? []) {
+    const ownerId = ownerIdForTeam(team);
+    statements.push(insertOwnerIfMissingStatement(`Owner ${ownerId.slice(0, 6)}`, ownerId));
+
+    statements.push({
+      sql: `INSERT INTO teams (season, team_id, owner_id, team_name, abbrev, logo_url)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(season, team_id) DO UPDATE SET
+              owner_id = excluded.owner_id,
+              team_name = excluded.team_name,
+              abbrev = excluded.abbrev,
+              logo_url = excluded.logo_url`,
+      args: [season, team.id, ownerId, teamDisplayName(team), team.abbrev ?? null, team.logo ?? null],
+    });
+
+    const rec = team.record?.overall;
+    const finalRank =
+      seasonComplete && team.rankCalculatedFinal && team.rankCalculatedFinal > 0
+        ? team.rankCalculatedFinal
+        : null;
+    const madePlayoffs = teamIdToPlayoffTierSeen.get(team.id) ? 1 : 0;
+
+    statements.push({
+      sql: `INSERT INTO standings (season, team_id, wins, losses, ties, points_for, points_against, final_rank, playoff_seed, made_playoffs, is_champion, is_runner_up, is_third_place, is_last_place, streak_type, streak_length)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(season, team_id) DO UPDATE SET
+              wins = excluded.wins, losses = excluded.losses, ties = excluded.ties,
+              points_for = excluded.points_for, points_against = excluded.points_against,
+              final_rank = excluded.final_rank, playoff_seed = excluded.playoff_seed,
+              made_playoffs = excluded.made_playoffs, is_champion = excluded.is_champion,
+              is_runner_up = excluded.is_runner_up, is_third_place = excluded.is_third_place,
+              is_last_place = excluded.is_last_place, streak_type = excluded.streak_type,
+              streak_length = excluded.streak_length`,
+      args: [
+        season,
+        team.id,
+        rec?.wins ?? 0,
+        rec?.losses ?? 0,
+        rec?.ties ?? 0,
+        rec?.pointsFor ?? 0,
+        rec?.pointsAgainst ?? 0,
+        finalRank,
+        team.playoffSeed ?? null,
+        madePlayoffs,
+        finalRank === 1 ? 1 : 0,
+        finalRank === 2 ? 1 : 0,
+        finalRank === 3 ? 1 : 0,
+        finalRank !== null && finalRank === teamCount ? 1 : 0,
+        rec?.streakType ?? null,
+        rec?.streakLength ?? null,
+      ],
+    });
+  }
+
+  const byWeek = new Map<number, EspnScheduleItem[]>();
+  for (const item of league.schedule ?? []) {
+    const list = byWeek.get(item.matchupPeriodId) ?? [];
+    list.push(item);
+    byWeek.set(item.matchupPeriodId, list);
+  }
+
+  statements.push({ sql: 'DELETE FROM matchups WHERE season = ?', args: [season] });
+
+  for (const [week, items] of byWeek) {
+    items.forEach((item, idx) => {
+      const homeScore = item.home?.totalPoints ?? null;
+      const awayScore = item.away?.totalPoints ?? null;
+      // ESPN sometimes auto-generates a full matchup schedule for a
+      // league year even when no games were ever actually played/scored
+      // (e.g. a dormant season), leaving every matchup at an impossible
+      // 0.0-0.0. A real fantasy score is never exactly zero, so treat
+      // that combination as an unplayed phantom row and skip it.
+      if ((homeScore ?? 0) === 0 && (awayScore ?? 0) === 0) return;
+
+      // Some matchup periods (typically a championship round) combine
+      // multiple real weeks into one cumulative-score "game" — detect
+      // that from the per-scoring-period breakdown so single-week
+      // records (most/fewest points, biggest blowout, closest game)
+      // don't get skewed by a 2-week combined total.
+      const homeWeeks = Object.keys(item.home?.pointsByScoringPeriod ?? {}).length;
+      const awayWeeks = Object.keys(item.away?.pointsByScoringPeriod ?? {}).length;
+      const durationWeeks = Math.max(homeWeeks, awayWeeks, 1);
+
+      statements.push({
+        sql: `INSERT INTO matchups (season, week, matchup_id, home_team_id, home_score, away_team_id, away_score, winner, playoff_tier_type, is_playoff, duration_weeks)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          season,
+          week,
+          idx,
+          item.home?.teamId ?? null,
+          homeScore,
+          item.away?.teamId ?? null,
+          awayScore,
+          item.winner ?? null,
+          item.playoffTierType ?? 'NONE',
+          item.playoffTierType === 'WINNERS_BRACKET' ? 1 : 0,
+          durationWeeks,
+        ],
+      });
+    });
+  }
+
+  await db.batch(statements, 'write');
 }
 
 async function syncDraftAndTransactions(season: number): Promise<void> {
-  const db = getDb();
+  const db = await getDb();
   const playerIds = new Set<number>();
 
   try {
     const draftLeague = await fetchLeagueSnapshot(season, ['mDraftDetail']);
     const picks = draftLeague.draftDetail?.picks ?? [];
-    db.prepare('DELETE FROM draft_picks WHERE season = ?').run(season);
-    const insertPick = db.prepare(
-      `INSERT INTO draft_picks (season, overall_pick, round_id, round_pick, team_id, player_id, bid_amount, keeper)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
+    const statements: InStatement[] = [{ sql: 'DELETE FROM draft_picks WHERE season = ?', args: [season] }];
     for (const pick of picks) {
       if (pick.playerId) playerIds.add(pick.playerId);
-      insertPick.run(
-        season,
-        pick.overallPickNumber,
-        pick.roundId ?? null,
-        pick.roundPickNumber ?? null,
-        pick.teamId ?? null,
-        pick.playerId ?? null,
-        pick.bidAmount ?? null,
-        pick.keeper ? 1 : 0,
-      );
+      statements.push({
+        sql: `INSERT INTO draft_picks (season, overall_pick, round_id, round_pick, team_id, player_id, bid_amount, keeper)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          season,
+          pick.overallPickNumber,
+          pick.roundId ?? null,
+          pick.roundPickNumber ?? null,
+          pick.teamId ?? null,
+          pick.playerId ?? null,
+          pick.bidAmount ?? null,
+          pick.keeper ? 1 : 0,
+        ],
+      });
     }
+    if (statements.length > 1) await db.batch(statements, 'write');
   } catch (err) {
     if (!(err instanceof EspnNotFoundError)) {
       console.warn(`[sync] draft detail unavailable for ${season}:`, (err as Error).message);
@@ -257,27 +274,30 @@ async function syncDraftAndTransactions(season: number): Promise<void> {
   try {
     const txnLeague = await fetchLeagueSnapshot(season, ['mTransactions2']);
     const transactions = txnLeague.transactions ?? [];
-    db.prepare('DELETE FROM transactions WHERE season = ?').run(season);
-    const insertTxn = db.prepare(
-      `INSERT OR IGNORE INTO transactions (season, transaction_id, type, status, team_id, player_id, bid_amount, processed_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
+    const statements: InStatement[] = [
+      { sql: 'DELETE FROM transactions WHERE season = ?', args: [season] },
+    ];
     for (const txn of transactions) {
       const items = txn.items && txn.items.length > 0 ? txn.items : [{ playerId: undefined, type: txn.type }];
       for (const item of items) {
         if (item.playerId) playerIds.add(item.playerId);
-        insertTxn.run(
-          season,
-          txn.id,
-          item.type ?? txn.type ?? null,
-          txn.status ?? null,
-          item.toTeamId ?? item.fromTeamId ?? txn.teamId ?? null,
-          item.playerId ?? null,
-          txn.bidAmount ?? null,
-          txn.processDate ? new Date(txn.processDate).toISOString() : null,
-        );
+        statements.push({
+          sql: `INSERT OR IGNORE INTO transactions (season, transaction_id, type, status, team_id, player_id, bid_amount, processed_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [
+            season,
+            txn.id,
+            item.type ?? txn.type ?? null,
+            txn.status ?? null,
+            item.toTeamId ?? item.fromTeamId ?? txn.teamId ?? null,
+            item.playerId ?? null,
+            txn.bidAmount ?? null,
+            txn.processDate ? new Date(txn.processDate).toISOString() : null,
+          ],
+        });
       }
     }
+    if (statements.length > 1) await db.batch(statements, 'write');
   } catch (err) {
     if (!(err instanceof EspnNotFoundError)) {
       console.warn(`[sync] transactions unavailable for ${season}:`, (err as Error).message);
@@ -287,13 +307,12 @@ async function syncDraftAndTransactions(season: number): Promise<void> {
   if (playerIds.size > 0) {
     try {
       const resolved = await fetchPlayersByIds(season, Array.from(playerIds));
-      const insertPlayer = db.prepare(
-        `INSERT INTO players (season, player_id, full_name, position, pro_team) VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT(season, player_id) DO UPDATE SET full_name = excluded.full_name, position = excluded.position, pro_team = excluded.pro_team`,
-      );
-      for (const [id, info] of resolved) {
-        insertPlayer.run(season, id, info.fullName, info.position, info.proTeam);
-      }
+      const statements: InStatement[] = Array.from(resolved, ([id, info]) => ({
+        sql: `INSERT INTO players (season, player_id, full_name, position, pro_team) VALUES (?, ?, ?, ?, ?)
+              ON CONFLICT(season, player_id) DO UPDATE SET full_name = excluded.full_name, position = excluded.position, pro_team = excluded.pro_team`,
+        args: [season, id, info.fullName, info.position, info.proTeam],
+      }));
+      if (statements.length > 0) await db.batch(statements, 'write');
     } catch (err) {
       console.warn(`[sync] player name resolution failed for ${season}:`, (err as Error).message);
     }
@@ -307,7 +326,7 @@ export async function syncSeason(season: number): Promise<void> {
     undefined,
     { requireTeamStats: true },
   );
-  syncSeasonCore(season, league);
+  await syncSeasonCore(season, league);
   await syncDraftAndTransactions(season);
 }
 
@@ -329,7 +348,9 @@ export async function syncAll(options: { forceSeason?: number } = {}): Promise<S
   }
 
   const syncedAt = new Date().toISOString();
-  setMeta('last_synced_at', syncedAt);
+  await setMeta('last_synced_at', syncedAt);
+  invalidateGameResultsCache();
+  invalidateSeasonPerformancesCache();
 
   return { syncedAt, results };
 }

@@ -19,10 +19,8 @@ export interface OwnerAllTimeSummary {
   lastPlaceFinishes: number;
 }
 
-export function getAllTimeStandings(): OwnerAllTimeSummary[] {
-  const owners = getOwners();
-  const standings = getAllStandings();
-  const teams = getAllTeams();
+export async function getAllTimeStandings(): Promise<OwnerAllTimeSummary[]> {
+  const [owners, standings, teams] = await Promise.all([getOwners(), getAllStandings(), getAllTeams()]);
 
   const teamsByOwner = new Map<string, typeof teams>();
   for (const t of teams) {
@@ -128,8 +126,8 @@ function toEntry(g: GameResult): RecordBookEntry {
   };
 }
 
-export function getRecordBook(): RecordBook {
-  const games = getAllGameResults().filter((g) => g.result !== 'BYE');
+export async function getRecordBook(): Promise<RecordBook> {
+  const games = (await getAllGameResults()).filter((g) => g.result !== 'BYE');
   if (games.length === 0) {
     return {
       mostPointsInGame: null,

@@ -11,7 +11,7 @@ import { LEAGUE_NAME, LEAGUE_TAGLINE } from '@/lib/branding';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  if (!hasAnyData()) {
+  if (!(await hasAnyData())) {
     return (
       <div className="flex flex-col gap-6">
         <Hero />
@@ -20,8 +20,9 @@ export default async function DashboardPage() {
     );
   }
 
-  const latestSeason = getLatestSeason()!;
-  const standings = buildSeasonPerformances()
+  const latestSeason = (await getLatestSeason())!;
+  const allStandings = await buildSeasonPerformances();
+  const standings = allStandings
     .filter((s) => s.season === latestSeason.season)
     .sort((a, b) => {
       if (a.finalRank !== null || b.finalRank !== null) return (a.finalRank ?? 999) - (b.finalRank ?? 999);
@@ -30,8 +31,11 @@ export default async function DashboardPage() {
       return wpB - wpA || b.pointsFor - a.pointsFor;
     });
 
-  const powerRankings = computePowerRankings(latestSeason.season).slice(0, 5);
-  const recordBook = getRecordBook();
+  const [allPowerRankings, recordBook] = await Promise.all([
+    computePowerRankings(latestSeason.season),
+    getRecordBook(),
+  ]);
+  const powerRankings = allPowerRankings.slice(0, 5);
 
   return (
     <div className="flex flex-col gap-8">

@@ -11,10 +11,10 @@ export default async function OwnerProfilePage({
 }: {
   params: Promise<{ ownerId: string }>;
 }) {
-  if (!hasAnyData()) return <EmptyState />;
+  if (!(await hasAnyData())) return <EmptyState />;
 
   const { ownerId } = await params;
-  const profile = getOwnerProfile(ownerId);
+  const profile = await getOwnerProfile(ownerId);
   if (!profile) notFound();
 
   const { summary } = profile;

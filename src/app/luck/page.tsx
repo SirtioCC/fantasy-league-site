@@ -12,14 +12,13 @@ export default async function LuckPage({
 }: {
   searchParams: Promise<{ season?: string }>;
 }) {
-  if (!hasAnyData()) return <EmptyState />;
+  if (!(await hasAnyData())) return <EmptyState />;
 
-  const seasons = getSeasonsWithGames();
+  const seasons = await getSeasonsWithGames();
   const { season: seasonParam } = await searchParams;
   const season = seasonParam ? Number.parseInt(seasonParam, 10) : seasons[0];
 
-  const seasonLuck = computeLuckRatings(season);
-  const allTimeLuck = computeLuckRatings();
+  const [seasonLuck, allTimeLuck] = await Promise.all([computeLuckRatings(season), computeLuckRatings()]);
 
   const ownerLuckTotals = new Map<string, { ownerName: string; luck: number; seasons: number }>();
   for (const row of allTimeLuck) {

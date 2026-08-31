@@ -13,11 +13,12 @@ league's full ESPN history.
 - **Next.js 16 (App Router) + TypeScript + React 19** — a full-stack React
   framework that deploys cleanly to Vercel (or Netlify), with server
   components for data-heavy pages and API routes for the sync endpoints.
-- **SQLite via `better-sqlite3`** — the local cache. It's a single file, zero
-  ops, synchronous (simple code, no async ceremony for a read-mostly
-  dashboard), and fast enough for a league of this size. On Vercel this file
-  lives in the function's ephemeral filesystem, which is why the cron sync
-  re-populates it on every run (see [Deploying](#deploying-to-vercel)).
+- **SQLite via `@libsql/client`** — locally, a plain SQLite file (zero setup,
+  no account needed). In production it points at [Turso](https://turso.tech)
+  instead, a hosted database that speaks the same SQLite dialect — same
+  query code either way, just a different connection string, and it avoids
+  relying on Vercel's serverless filesystem (which doesn't persist reliably
+  between requests). See [Setting up Turso](#5-setting-up-turso-required-in-production).
 - **Tailwind CSS v4** for styling, **Recharts** for the charts.
 - **tsx** to run the TypeScript sync script directly from the CLI.
 
@@ -159,30 +160,58 @@ against, and triggering an extra sync isn't sensitive since your ESPN
 credentials never leave the server. Leave `CRON_SECRET` unset for local dev
 if you don't want to bother with it.
 
-## 5. Deploying to Vercel
+## 5. Setting up Turso (required in production)
+
+Locally, the app just reads/writes a SQLite file — no account needed. But
+Vercel's serverless functions have a filesystem that's read-only outside
+`/tmp`, and even `/tmp` doesn't reliably persist between requests (different
+requests can land on different underlying instances). A local file can't be
+the source of truth there, so production uses [Turso](https://turso.tech) —
+a hosted database that speaks the same SQLite dialect, so none of the query
+code differs, only the connection.
+
+1. Go to [turso.tech](https://turso.tech) and sign up (free tier is plenty
+   for a league site like this).
+2. Create a database from the dashboard (any name and region is fine).
+3. From the database's page, grab two things:
+   - The **connection URL**, shown as `libsql://<name>-<org>.turso.io`.
+   - An **auth token** — there's a "Create Token" (or similar) button; copy
+     the generated token immediately, it's only shown once.
+4. Set both as environment variables — locally in `.env` if you want to
+   point local dev at the same shared database too, and in Vercel (next
+   section) for production:
+   ```
+   TURSO_DATABASE_URL=libsql://your-db-name-your-org.turso.io
+   TURSO_AUTH_TOKEN=eyJ...
+   ```
+5. That's it — no manual schema setup. The app creates its tables
+   automatically against whichever database it's pointed at, the first time
+   it connects.
+
+## 6. Deploying to Vercel
 
 1. Push this repo to GitHub (or GitLab/Bitbucket).
 2. Import it in [Vercel](https://vercel.com/new).
 3. Add the environment variables from your `.env` file
-   (`ESPN_S2`, `ESPN_SWID`, `LEAGUE_ID`, and optionally `LEAGUE_START_YEAR`,
-   `CRON_SECRET`, `NEXT_PUBLIC_LEAGUE_NAME`) in the Vercel project settings.
+   (`ESPN_S2`, `ESPN_SWID`, `LEAGUE_ID`, `TURSO_DATABASE_URL`,
+   `TURSO_AUTH_TOKEN`, and optionally `LEAGUE_START_YEAR`, `CRON_SECRET`,
+   `NEXT_PUBLIC_LEAGUE_NAME`) in the Vercel project settings. **Don't skip
+   the two Turso variables** — without them the site will appear to sync
+   successfully but the data won't reliably show up (see below).
 4. Deploy. `vercel.json` already declares the weekly cron job — Vercel picks
    it up automatically, no extra configuration needed.
 5. After the first deploy, trigger an initial sync so the site isn't empty:
    hit **Refresh data** in the nav, or `curl -X POST https://your-app.vercel.app/api/sync`.
 
-**Note on SQLite on Vercel:** Vercel's serverless functions have an
-ephemeral, ready-only-outside-`/tmp` filesystem — anything written to
-`data/league.db` during a request does **not** persist between deploys or
-across different function instances. That's fine for this project because
-the weekly cron sync (and the manual refresh button) always re-populate it
-from ESPN, but it does mean each new function instance starts with an empty
-cache until the next sync runs. If you outgrow this (e.g. you want the site
-to always be instantly populated without waiting on a cron run, or you want
-sync history to persist), swap `DATABASE_PATH` to point at a Vercel-attached
-storage volume, or migrate the schema in `src/lib/db/schema.ts` to a hosted
-Postgres database (e.g. Vercel Postgres/Neon) — the query layer in
-`src/lib/db/queries.ts` is the only place that would need rewriting.
+**Why Turso instead of just the SQLite file:** early on this project used a
+local `data/league.db` file in production too, pointed at Vercel's `/tmp`.
+It mostly worked, then didn't — a sync would report success, but the next
+page load (served by a different underlying instance) still showed no data,
+because that instance's `/tmp` never got the write. Vercel's serverless
+model just doesn't guarantee one consistent local filesystem across
+requests. Turso removes the problem entirely: every instance, and the
+weekly cron job, all read and write the same real database, so what the
+cron syncs is what every visitor actually sees.
 
 ### Deploying to Netlify instead
 

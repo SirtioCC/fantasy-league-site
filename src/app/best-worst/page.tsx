@@ -12,14 +12,17 @@ import { EmptyState } from '@/components/EmptyState';
 export const dynamic = 'force-dynamic';
 
 export default async function BestWorstPage() {
-  if (!hasAnyData()) return <EmptyState />;
+  if (!(await hasAnyData())) return <EmptyState />;
 
-  const bestByWins = bestSeasonsByWins(10);
-  const worstByWinsList = worstSeasonsByWins(10);
-  const bestByPoints = bestSeasonsByPoints(10);
-  const worstByPointsList = worstSeasonsByPoints(10);
-  const champions = championshipSeasons();
-  const consistency = computeConsistency();
+  const [bestByWins, worstByWinsList, bestByPoints, worstByPointsList, champions, consistency] =
+    await Promise.all([
+      bestSeasonsByWins(10),
+      worstSeasonsByWins(10),
+      bestSeasonsByPoints(10),
+      worstSeasonsByPoints(10),
+      championshipSeasons(),
+      computeConsistency(),
+    ]);
 
   const mostConsistent = [...consistency].sort((a, b) => a.stdDev - b.stdDev).slice(0, 8);
   const mostVolatile = [...consistency].slice(0, 8);
@@ -134,7 +137,7 @@ function SeasonTable({
   metric,
 }: {
   title: string;
-  rows: ReturnType<typeof bestSeasonsByWins>;
+  rows: Awaited<ReturnType<typeof bestSeasonsByWins>>;
   metric: 'wins' | 'points';
 }) {
   return (
@@ -173,7 +176,7 @@ function SeasonTable({
   );
 }
 
-function ConsistencyTable({ rows }: { rows: ReturnType<typeof computeConsistency> }) {
+function ConsistencyTable({ rows }: { rows: Awaited<ReturnType<typeof computeConsistency>> }) {
   return (
     <div className="card overflow-x-auto">
       <table className="table-clean table-responsive w-full">

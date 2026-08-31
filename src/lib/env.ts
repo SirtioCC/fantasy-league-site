@@ -50,6 +50,24 @@ export function getDatabasePath(): string {
   return process.env.VERCEL ? '/tmp/league.db' : './data/league.db';
 }
 
+export interface TursoConfig {
+  url: string;
+  authToken: string;
+}
+
+/**
+ * Turso (hosted libSQL) connection, when configured. Without it, the app
+ * falls back to a local SQLite file — fine for local dev, but on a
+ * serverless host like Vercel a local file doesn't persist reliably
+ * between requests, so production deployments should always set these.
+ */
+export function getTursoConfig(): TursoConfig | null {
+  const url = readEnv('TURSO_DATABASE_URL');
+  const authToken = readEnv('TURSO_AUTH_TOKEN');
+  if (!url || !authToken) return null;
+  return { url, authToken };
+}
+
 export function getCronSecret(): string | null {
   return readEnv('CRON_SECRET') ?? null;
 }

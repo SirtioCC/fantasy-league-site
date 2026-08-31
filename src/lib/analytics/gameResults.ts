@@ -32,14 +32,21 @@ let cache: GameResult[] | null = null;
 /**
  * Flattens the matchups table into one row per team per game (so both sides
  * of a matchup get a symmetric view), joined with team/owner names. This is
- * the shared backbone most analytics modules build on top of.
+ * the shared backbone most analytics modules build on top of. Cached for
+ * the lifetime of the server process/instance — call
+ * invalidateGameResultsCache() after writing new data (the sync layer does
+ * this automatically).
  */
-export function getAllGameResults(): GameResult[] {
+export async function getAllGameResults(): Promise<GameResult[]> {
   if (cache) return cache;
 
-  const teams = new Map(getAllTeams().map((t) => [`${t.season}:${t.team_id}`, t]));
-  const owners = new Map(getOwners().map((o) => [o.owner_id, o.display_name]));
-  const matchups = getAllMatchups();
+  const [allTeams, allOwners, matchups] = await Promise.all([
+    getAllTeams(),
+    getOwners(),
+    getAllMatchups(),
+  ]);
+  const teams = new Map(allTeams.map((t) => [`${t.season}:${t.team_id}`, t]));
+  const owners = new Map(allOwners.map((o) => [o.owner_id, o.display_name]));
 
   const results: GameResult[] = [];
 
@@ -108,9 +115,10 @@ export function invalidateGameResultsCache() {
 
 /** Regular-season-only games (used for luck / power ranking math, where we
  * want every team compared against the same full-league pool each week). */
-export function getRegularSeasonGameResults(): GameResult[] {
-  const seasons = new Map(getSeasons().map((s) => [s.season, s]));
-  return getAllGameResults().filter((g) => {
+export async function getRegularSeasonGameResults(): Promise<GameResult[]> {
+  const [seasonRows, games] = await Promise.all([getSeasons(), getAllGameResults()]);
+  const seasons = new Map(seasonRows.map((s) => [s.season, s]));
+  return games.filter((g) => {
     const season = seasons.get(g.season);
     if (!season?.regular_season_weeks) return !g.isPlayoff;
     return g.week <= season.regular_season_weeks;

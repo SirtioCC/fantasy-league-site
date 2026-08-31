@@ -6,9 +6,9 @@ import { EmptyState } from '@/components/EmptyState';
 export const dynamic = 'force-dynamic';
 
 export default async function TeamsIndexPage() {
-  if (!hasAnyData()) return <EmptyState />;
+  if (!(await hasAnyData())) return <EmptyState />;
 
-  const owners = getAllTimeStandings();
+  const owners = await getAllTimeStandings();
 
   return (
     <div className="flex flex-col gap-6">

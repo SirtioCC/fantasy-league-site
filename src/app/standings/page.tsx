@@ -8,10 +8,9 @@ import { PointsForBarChart } from '@/components/charts/PointsForBarChart';
 export const dynamic = 'force-dynamic';
 
 export default async function StandingsPage() {
-  if (!hasAnyData()) return <EmptyState />;
+  if (!(await hasAnyData())) return <EmptyState />;
 
-  const standings = getAllTimeStandings();
-  const recordBook = getRecordBook();
+  const [standings, recordBook] = await Promise.all([getAllTimeStandings(), getRecordBook()]);
 
   const pointsForData = [...standings]
     .sort((a, b) => b.pointsFor - a.pointsFor)

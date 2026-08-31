@@ -89,112 +89,107 @@ export interface PlayerRow {
   pro_team: string | null;
 }
 
-export function getOwners(): OwnerRow[] {
-  return getDb().prepare('SELECT * FROM owners ORDER BY display_name').all() as OwnerRow[];
+type SqlArg = string | number | null;
+
+async function all<T>(sql: string, args: SqlArg[] = []): Promise<T[]> {
+  const db = await getDb();
+  const result = await db.execute({ sql, args });
+  return result.rows as unknown as T[];
 }
 
-export function getOwner(ownerId: string): OwnerRow | null {
-  return (
-    (getDb().prepare('SELECT * FROM owners WHERE owner_id = ?').get(ownerId) as OwnerRow) ?? null
-  );
+async function get<T>(sql: string, args: SqlArg[] = []): Promise<T | null> {
+  const rows = await all<T>(sql, args);
+  return rows[0] ?? null;
 }
 
-export function getSeasons(): SeasonRow[] {
-  return getDb().prepare('SELECT * FROM seasons ORDER BY season DESC').all() as SeasonRow[];
+export function getOwners(): Promise<OwnerRow[]> {
+  return all<OwnerRow>('SELECT * FROM owners ORDER BY display_name');
 }
 
-export function getSeason(season: number): SeasonRow | null {
-  return (
-    (getDb().prepare('SELECT * FROM seasons WHERE season = ?').get(season) as SeasonRow) ?? null
-  );
+export function getOwner(ownerId: string): Promise<OwnerRow | null> {
+  return get<OwnerRow>('SELECT * FROM owners WHERE owner_id = ?', [ownerId]);
 }
 
-export function getLatestSeason(): SeasonRow | null {
-  const seasons = getSeasons();
+export function getSeasons(): Promise<SeasonRow[]> {
+  return all<SeasonRow>('SELECT * FROM seasons ORDER BY season DESC');
+}
+
+export function getSeason(season: number): Promise<SeasonRow | null> {
+  return get<SeasonRow>('SELECT * FROM seasons WHERE season = ?', [season]);
+}
+
+export async function getLatestSeason(): Promise<SeasonRow | null> {
+  const seasons = await getSeasons();
   return seasons[0] ?? null;
 }
 
 /** Seasons that actually have at least one real (non-phantom) matchup —
  * excludes a league year that exists on ESPN as an empty shell (created,
  * but no games ever played/scored, e.g. a dormant season). */
-export function getSeasonsWithGames(): number[] {
-  const rows = getDb()
-    .prepare('SELECT DISTINCT season FROM matchups ORDER BY season DESC')
-    .all() as { season: number }[];
+export async function getSeasonsWithGames(): Promise<number[]> {
+  const rows = await all<{ season: number }>('SELECT DISTINCT season FROM matchups ORDER BY season DESC');
   return rows.map((r) => r.season);
 }
 
-export function getAllTeams(): TeamRow[] {
-  return getDb().prepare('SELECT * FROM teams').all() as TeamRow[];
+export function getAllTeams(): Promise<TeamRow[]> {
+  return all<TeamRow>('SELECT * FROM teams');
 }
 
-export function getTeamsForSeason(season: number): TeamRow[] {
-  return getDb().prepare('SELECT * FROM teams WHERE season = ?').all(season) as TeamRow[];
+export function getTeamsForSeason(season: number): Promise<TeamRow[]> {
+  return all<TeamRow>('SELECT * FROM teams WHERE season = ?', [season]);
 }
 
-export function getTeamsForOwner(ownerId: string): TeamRow[] {
-  return getDb()
-    .prepare('SELECT * FROM teams WHERE owner_id = ? ORDER BY season')
-    .all(ownerId) as TeamRow[];
+export function getTeamsForOwner(ownerId: string): Promise<TeamRow[]> {
+  return all<TeamRow>('SELECT * FROM teams WHERE owner_id = ? ORDER BY season', [ownerId]);
 }
 
-export function getAllStandings(): StandingRow[] {
-  return getDb().prepare('SELECT * FROM standings').all() as StandingRow[];
+export function getAllStandings(): Promise<StandingRow[]> {
+  return all<StandingRow>('SELECT * FROM standings');
 }
 
-export function getStandingsForSeason(season: number): StandingRow[] {
-  return getDb()
-    .prepare('SELECT * FROM standings WHERE season = ? ORDER BY final_rank IS NULL, final_rank')
-    .all(season) as StandingRow[];
-}
-
-export function getAllMatchups(): MatchupRow[] {
-  return getDb().prepare('SELECT * FROM matchups').all() as MatchupRow[];
-}
-
-export function getMatchupsForSeason(season: number): MatchupRow[] {
-  return getDb()
-    .prepare('SELECT * FROM matchups WHERE season = ? ORDER BY week, matchup_id')
-    .all(season) as MatchupRow[];
-}
-
-export function getPlayedMatchups(): MatchupRow[] {
-  return getDb()
-    .prepare(
-      `SELECT * FROM matchups WHERE home_score IS NOT NULL AND away_score IS NOT NULL AND away_team_id IS NOT NULL AND (home_score > 0 OR away_score > 0)`,
-    )
-    .all() as MatchupRow[];
-}
-
-export function getDraftPicksForSeason(season: number): DraftPickRow[] {
-  return getDb()
-    .prepare('SELECT * FROM draft_picks WHERE season = ? ORDER BY overall_pick')
-    .all(season) as DraftPickRow[];
-}
-
-export function getTransactionsForSeason(season: number): TransactionRow[] {
-  return getDb()
-    .prepare('SELECT * FROM transactions WHERE season = ? ORDER BY processed_date DESC')
-    .all(season) as TransactionRow[];
-}
-
-export function getTransactionsForTeam(season: number, teamId: number): TransactionRow[] {
-  return getDb()
-    .prepare(
-      'SELECT * FROM transactions WHERE season = ? AND team_id = ? ORDER BY processed_date DESC',
-    )
-    .all(season, teamId) as TransactionRow[];
-}
-
-export function getPlayer(season: number, playerId: number): PlayerRow | null {
-  return (
-    (getDb()
-      .prepare('SELECT * FROM players WHERE season = ? AND player_id = ?')
-      .get(season, playerId) as PlayerRow) ?? null
+export function getStandingsForSeason(season: number): Promise<StandingRow[]> {
+  return all<StandingRow>(
+    'SELECT * FROM standings WHERE season = ? ORDER BY final_rank IS NULL, final_rank',
+    [season],
   );
 }
 
-export function getPlayersMap(season: number): Map<number, PlayerRow> {
-  const rows = getDb().prepare('SELECT * FROM players WHERE season = ?').all(season) as PlayerRow[];
+export function getAllMatchups(): Promise<MatchupRow[]> {
+  return all<MatchupRow>('SELECT * FROM matchups');
+}
+
+export function getMatchupsForSeason(season: number): Promise<MatchupRow[]> {
+  return all<MatchupRow>('SELECT * FROM matchups WHERE season = ? ORDER BY week, matchup_id', [season]);
+}
+
+export function getPlayedMatchups(): Promise<MatchupRow[]> {
+  return all<MatchupRow>(
+    `SELECT * FROM matchups WHERE home_score IS NOT NULL AND away_score IS NOT NULL AND away_team_id IS NOT NULL AND (home_score > 0 OR away_score > 0)`,
+  );
+}
+
+export function getDraftPicksForSeason(season: number): Promise<DraftPickRow[]> {
+  return all<DraftPickRow>('SELECT * FROM draft_picks WHERE season = ? ORDER BY overall_pick', [season]);
+}
+
+export function getTransactionsForSeason(season: number): Promise<TransactionRow[]> {
+  return all<TransactionRow>('SELECT * FROM transactions WHERE season = ? ORDER BY processed_date DESC', [
+    season,
+  ]);
+}
+
+export function getTransactionsForTeam(season: number, teamId: number): Promise<TransactionRow[]> {
+  return all<TransactionRow>(
+    'SELECT * FROM transactions WHERE season = ? AND team_id = ? ORDER BY processed_date DESC',
+    [season, teamId],
+  );
+}
+
+export function getPlayer(season: number, playerId: number): Promise<PlayerRow | null> {
+  return get<PlayerRow>('SELECT * FROM players WHERE season = ? AND player_id = ?', [season, playerId]);
+}
+
+export async function getPlayersMap(season: number): Promise<Map<number, PlayerRow>> {
+  const rows = await all<PlayerRow>('SELECT * FROM players WHERE season = ?', [season]);
   return new Map(rows.map((r) => [r.player_id, r]));
 }

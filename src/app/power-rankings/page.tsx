@@ -13,14 +13,17 @@ export default async function PowerRankingsPage({
 }: {
   searchParams: Promise<{ season?: string }>;
 }) {
-  if (!hasAnyData()) return <EmptyState />;
+  if (!(await hasAnyData())) return <EmptyState />;
 
-  const seasons = getSeasonsWithGames();
+  const seasons = await getSeasonsWithGames();
   const { season: seasonParam } = await searchParams;
   const season = seasonParam ? Number.parseInt(seasonParam, 10) : seasons[0];
 
-  const rankings = computePowerRankings(season);
-  const history = computePowerRankingsHistory(season);
+  const [rankings, history, allGames] = await Promise.all([
+    computePowerRankings(season),
+    computePowerRankingsHistory(season),
+    getAllGameResults(),
+  ]);
   const weeks = Array.from(history.keys()).sort((a, b) => a - b);
 
   const powerSeries: SparklineSeries[] = rankings.map((r) => ({
@@ -33,7 +36,7 @@ export default async function PowerRankingsPage({
     })),
   }));
 
-  const seasonGames = getAllGameResults().filter((g) => g.season === season && g.result !== 'BYE');
+  const seasonGames = allGames.filter((g) => g.season === season && g.result !== 'BYE');
   const scoringWeeks = Array.from(new Set(seasonGames.map((g) => g.week))).sort((a, b) => a - b);
   const gamesByTeamWeek = new Map(seasonGames.map((g) => [`${g.teamId}:${g.week}`, g.points]));
 

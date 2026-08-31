@@ -16,12 +16,24 @@ export interface SeasonPerformance {
   isChampion: boolean;
 }
 
-export function buildSeasonPerformances(): SeasonPerformance[] {
-  const standings = getAllStandings();
-  const teams = new Map(getAllTeams().map((t) => [`${t.season}:${t.team_id}`, t]));
-  const owners = new Map(getOwners().map((o) => [o.owner_id, o.display_name]));
+let cache: SeasonPerformance[] | null = null;
 
-  return standings
+/** Cached for the lifetime of the server process/instance — several
+ * best/worst views each call this independently, and with a remote
+ * database each call is a network round trip, so avoid repeating it.
+ * Invalidated automatically by the sync layer after writing new data. */
+export async function buildSeasonPerformances(): Promise<SeasonPerformance[]> {
+  if (cache) return cache;
+
+  const [standings, allTeams, allOwners] = await Promise.all([
+    getAllStandings(),
+    getAllTeams(),
+    getOwners(),
+  ]);
+  const teams = new Map(allTeams.map((t) => [`${t.season}:${t.team_id}`, t]));
+  const owners = new Map(allOwners.map((o) => [o.owner_id, o.display_name]));
+
+  const result = standings
     .map((s): SeasonPerformance | null => {
       const team = teams.get(`${s.season}:${s.team_id}`);
       if (!team) return null;
@@ -41,34 +53,45 @@ export function buildSeasonPerformances(): SeasonPerformance[] {
       };
     })
     .filter((s): s is SeasonPerformance => s !== null && s.wins + s.losses + s.ties > 0);
+
+  cache = result;
+  return result;
 }
 
-export function bestSeasonsByWins(limit = 10): SeasonPerformance[] {
-  return buildSeasonPerformances()
+export function invalidateSeasonPerformancesCache() {
+  cache = null;
+}
+
+export async function bestSeasonsByWins(limit = 10): Promise<SeasonPerformance[]> {
+  return (await buildSeasonPerformances())
+    .slice()
     .sort((a, b) => b.wins - a.wins || b.pointsFor - a.pointsFor)
     .slice(0, limit);
 }
 
-export function worstSeasonsByWins(limit = 10): SeasonPerformance[] {
-  return buildSeasonPerformances()
+export async function worstSeasonsByWins(limit = 10): Promise<SeasonPerformance[]> {
+  return (await buildSeasonPerformances())
+    .slice()
     .sort((a, b) => a.wins - b.wins || a.pointsFor - b.pointsFor)
     .slice(0, limit);
 }
 
-export function bestSeasonsByPoints(limit = 10): SeasonPerformance[] {
-  return buildSeasonPerformances()
+export async function bestSeasonsByPoints(limit = 10): Promise<SeasonPerformance[]> {
+  return (await buildSeasonPerformances())
+    .slice()
     .sort((a, b) => b.pointsFor - a.pointsFor)
     .slice(0, limit);
 }
 
-export function worstSeasonsByPoints(limit = 10): SeasonPerformance[] {
-  return buildSeasonPerformances()
+export async function worstSeasonsByPoints(limit = 10): Promise<SeasonPerformance[]> {
+  return (await buildSeasonPerformances())
+    .slice()
     .sort((a, b) => a.pointsFor - b.pointsFor)
     .slice(0, limit);
 }
 
-export function championshipSeasons(): SeasonPerformance[] {
-  return buildSeasonPerformances()
+export async function championshipSeasons(): Promise<SeasonPerformance[]> {
+  return (await buildSeasonPerformances())
     .filter((s) => s.isChampion)
     .sort((a, b) => b.season - a.season);
 }
@@ -85,8 +108,8 @@ export interface ConsistencyRow {
   bustWeeks: number; // scored > 15% below their own season average
 }
 
-export function computeConsistency(): ConsistencyRow[] {
-  const games = getRegularSeasonGameResults().filter((g) => g.result !== 'BYE');
+export async function computeConsistency(): Promise<ConsistencyRow[]> {
+  const games = (await getRegularSeasonGameResults()).filter((g) => g.result !== 'BYE');
   const byTeamSeason = new Map<string, typeof games>();
 
   for (const g of games) {

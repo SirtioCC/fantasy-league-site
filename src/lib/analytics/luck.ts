@@ -19,8 +19,8 @@ export interface TeamSeasonLuck {
   overUnderPerformance: number; // pointsForRank - standingsRank. Positive = overperformed their scoring.
 }
 
-export function computeLuckRatings(season?: number): TeamSeasonLuck[] {
-  const games = getRegularSeasonGameResults().filter((g) => g.result !== 'BYE');
+export async function computeLuckRatings(season?: number): Promise<TeamSeasonLuck[]> {
+  const games = (await getRegularSeasonGameResults()).filter((g) => g.result !== 'BYE');
   const seasons = season ? [season] : Array.from(new Set(games.map((g) => g.season))).sort();
 
   const out: TeamSeasonLuck[] = [];
@@ -76,7 +76,7 @@ export function computeLuckRatings(season?: number): TeamSeasonLuck[] {
     const leagueTotalGames = Array.from(gamesPlayedByTeam.values()).reduce((a, b) => a + b, 0);
     const leagueAvgPpg = leagueTotalGames > 0 ? leagueTotalPoints / leagueTotalGames : 0;
 
-    const standings = getStandingsForSeason(s);
+    const standings = await getStandingsForSeason(s);
     const standingsByTeam = new Map(standings.map((st) => [st.team_id, st]));
 
     const pointsForRanked = Array.from(pointsSumByTeam.entries()).sort((a, b) => b[1] - a[1]);

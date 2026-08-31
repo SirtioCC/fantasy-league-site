@@ -27,8 +27,8 @@ function normalize(value: number, min: number, max: number): number {
  * recent form (last up-to-3 games), and strength of schedule faced so far —
  * not just raw win/loss record.
  */
-export function computePowerRankings(season: number, throughWeek?: number): PowerRankingRow[] {
-  const allGames = getRegularSeasonGameResults().filter(
+export async function computePowerRankings(season: number, throughWeek?: number): Promise<PowerRankingRow[]> {
+  const allGames = (await getRegularSeasonGameResults()).filter(
     (g) => g.season === season && g.result !== 'BYE',
   );
   if (allGames.length === 0) return [];
@@ -111,12 +111,12 @@ export function computePowerRankings(season: number, throughWeek?: number): Powe
 
 /** Power rankings for every week of a season, keyed by week number — used
  * for the "power ranking over time" line chart. */
-export function computePowerRankingsHistory(season: number): Map<number, PowerRankingRow[]> {
-  const games = getRegularSeasonGameResults().filter((g) => g.season === season && g.result !== 'BYE');
+export async function computePowerRankingsHistory(season: number): Promise<Map<number, PowerRankingRow[]>> {
+  const games = (await getRegularSeasonGameResults()).filter((g) => g.season === season && g.result !== 'BYE');
   const weeks = Array.from(new Set(games.map((g) => g.week))).sort((a, b) => a - b);
   const history = new Map<number, PowerRankingRow[]>();
   for (const week of weeks) {
-    history.set(week, computePowerRankings(season, week));
+    history.set(week, await computePowerRankings(season, week));
   }
   return history;
 }

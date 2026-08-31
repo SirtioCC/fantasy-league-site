@@ -11,12 +11,10 @@ export default async function HeadToHeadPage({
 }: {
   searchParams: Promise<{ a?: string; b?: string }>;
 }) {
-  if (!hasAnyData()) return <EmptyState />;
+  if (!(await hasAnyData())) return <EmptyState />;
 
-  const owners = getOwners();
-  const matrix = buildHeadToHeadMatrix();
-  const { a, b } = await searchParams;
-  const rivalry = a && b && a !== b ? getRivalry(a, b) : null;
+  const [owners, matrix, { a, b }] = await Promise.all([getOwners(), buildHeadToHeadMatrix(), searchParams]);
+  const rivalry = a && b && a !== b ? await getRivalry(a, b) : null;
 
   return (
     <div className="flex flex-col gap-8">
