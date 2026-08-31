@@ -14,6 +14,7 @@ export interface OwnerDraftPick {
   proTeam: string | null;
   keeper: boolean;
   bidAmount: number | null;
+  totalPoints: number | null;
 }
 
 export interface OwnerRecordHeld {
@@ -93,6 +94,7 @@ export async function getOwnerProfile(ownerId: string): Promise<OwnerProfile | n
           proTeam: player?.pro_team ?? null,
           keeper: !!pick.keeper,
           bidAmount: pick.bid_amount,
+          totalPoints: player?.total_points ?? null,
         };
       });
     }),

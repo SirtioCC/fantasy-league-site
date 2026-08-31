@@ -122,11 +122,20 @@ export interface EspnLeagueResponse {
   transactions?: EspnTransaction[];
 }
 
+export interface EspnPlayerStat {
+  seasonId?: number;
+  scoringPeriodId?: number;
+  statSourceId?: number; // 0 = actual, 1 = projected
+  statSplitTypeId?: number; // 0 = season total, 1 = weekly, others = rolling windows
+  appliedTotal?: number; // fantasy points under the requesting league's scoring settings
+}
+
 export interface EspnPlayerEntry {
   id: number;
   fullName?: string;
   defaultPositionId?: number;
   proTeamId?: number;
+  stats?: EspnPlayerStat[];
 }
 
 export interface EspnPlayersResponse {

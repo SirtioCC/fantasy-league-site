@@ -43,10 +43,16 @@ function resolveLocalDbPath(): string {
 /** Lightweight migrations for databases created before a schema addition —
  * CREATE TABLE IF NOT EXISTS won't retroactively add new columns. */
 async function runMigrations(client: Client): Promise<void> {
-  const result = await client.execute('PRAGMA table_info(matchups)');
-  const hasDurationWeeks = result.rows.some((row) => row.name === 'duration_weeks');
+  const matchupsInfo = await client.execute('PRAGMA table_info(matchups)');
+  const hasDurationWeeks = matchupsInfo.rows.some((row) => row.name === 'duration_weeks');
   if (!hasDurationWeeks) {
     await client.execute('ALTER TABLE matchups ADD COLUMN duration_weeks INTEGER NOT NULL DEFAULT 1');
+  }
+
+  const playersInfo = await client.execute('PRAGMA table_info(players)');
+  const hasTotalPoints = playersInfo.rows.some((row) => row.name === 'total_points');
+  if (!hasTotalPoints) {
+    await client.execute('ALTER TABLE players ADD COLUMN total_points REAL');
   }
 }
 

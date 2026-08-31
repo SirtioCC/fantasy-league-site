@@ -36,6 +36,7 @@ export function DraftHistoryTable({ picks }: { picks: OwnerDraftPick[] }) {
               <th>Player</th>
               <th>Pos</th>
               <th>NFL Team</th>
+              <th>Points</th>
             </tr>
           </thead>
           <tbody>
@@ -45,6 +46,7 @@ export function DraftHistoryTable({ picks }: { picks: OwnerDraftPick[] }) {
                 <td data-label="Player" className="font-medium">{d.playerName}</td>
                 <td data-label="Pos">{d.position ?? '—'}</td>
                 <td data-label="NFL Team">{d.proTeam ?? '—'}</td>
+                <td data-label="Points">{d.totalPoints !== null ? d.totalPoints.toFixed(1) : '—'}</td>
               </tr>
             ))}
           </tbody>

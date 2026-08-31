@@ -309,9 +309,9 @@ async function syncDraftAndTransactions(season: number): Promise<void> {
     try {
       const resolved = await fetchPlayersByIds(season, Array.from(playerIds));
       const statements: InStatement[] = Array.from(resolved, ([id, info]) => ({
-        sql: `INSERT INTO players (season, player_id, full_name, position, pro_team) VALUES (?, ?, ?, ?, ?)
-              ON CONFLICT(season, player_id) DO UPDATE SET full_name = excluded.full_name, position = excluded.position, pro_team = excluded.pro_team`,
-        args: [season, id, info.fullName, info.position, info.proTeam],
+        sql: `INSERT INTO players (season, player_id, full_name, position, pro_team, total_points) VALUES (?, ?, ?, ?, ?, ?)
+              ON CONFLICT(season, player_id) DO UPDATE SET full_name = excluded.full_name, position = excluded.position, pro_team = excluded.pro_team, total_points = excluded.total_points`,
+        args: [season, id, info.fullName, info.position, info.proTeam, info.totalPoints],
       }));
       if (statements.length > 0) await db.batch(statements, 'write');
     } catch (err) {

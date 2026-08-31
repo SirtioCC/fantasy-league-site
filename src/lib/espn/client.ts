@@ -1,5 +1,5 @@
 import { getEspnCredentials, type EspnCredentials } from '@/lib/env';
-import type { EspnLeagueResponse, EspnPlayersResponse } from './types';
+import type { EspnLeagueResponse, EspnPlayerEntry, EspnPlayersResponse } from './types';
 
 const CURRENT_SEASON_BASE = 'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons';
 const HISTORY_BASE = 'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/leagueHistory';
@@ -134,21 +134,28 @@ export async function discoverAvailableSeasons(
   return found;
 }
 
+export interface EspnPlayerSummary {
+  fullName: string;
+  position: string | null;
+  proTeam: string | null;
+  totalPoints: number | null;
+}
+
 export async function fetchPlayersByIds(
   season: number,
   playerIds: number[],
   creds: EspnCredentials = mustGetCreds(),
-): Promise<Map<number, { fullName: string; position: string | null; proTeam: string | null }>> {
-  const result = new Map<
-    number,
-    { fullName: string; position: string | null; proTeam: string | null }
-  >();
+): Promise<Map<number, EspnPlayerSummary>> {
+  const result = new Map<number, EspnPlayerSummary>();
   if (playerIds.length === 0) return result;
 
   const chunkSize = 300;
   for (let i = 0; i < playerIds.length; i += chunkSize) {
     const chunk = playerIds.slice(i, i + chunkSize);
-    const url = `${PLAYERS_BASE}/${season}/players?scoringPeriodId=0&view=players_wl`;
+    // kona_playercard returns each player's full stat lines (including the
+    // season-total actual, used for their points-scored total) alongside
+    // the name/position/team fields the simpler players_wl view gave us.
+    const url = `${PLAYERS_BASE}/${season}/players?scoringPeriodId=0&view=kona_playercard`;
     const filter = { players: { filterIds: { value: chunk } } };
 
     const res = await fetch(url, {
@@ -161,7 +168,7 @@ export async function fetchPlayersByIds(
       cache: 'no-store',
     });
 
-    if (!res.ok) continue; // player name resolution is best-effort, never fatal
+    if (!res.ok) continue; // player resolution is best-effort, never fatal
 
     const data = (await res.json()) as EspnPlayersResponse | { id: number; fullName?: string }[];
     const entries = Array.isArray(data) ? data : data.players ?? [];
@@ -174,11 +181,29 @@ export async function fetchPlayersByIds(
         fullName: player.fullName ?? `Player #${id}`,
         position: POSITION_MAP[(player as { defaultPositionId?: number }).defaultPositionId ?? -1] ?? null,
         proTeam: PRO_TEAM_MAP[(player as { proTeamId?: number }).proTeamId ?? -1] ?? null,
+        totalPoints: extractSeasonPoints(player as EspnPlayerEntry, season),
       });
     }
   }
 
   return result;
+}
+
+function extractSeasonPoints(player: EspnPlayerEntry, season: number): number | null {
+  const stats = player.stats ?? [];
+
+  // Prefer the single "actual, season total" entry ESPN provides directly.
+  const seasonTotal = stats.find(
+    (s) => s.seasonId === season && s.statSourceId === 0 && s.statSplitTypeId === 0,
+  );
+  if (seasonTotal && typeof seasonTotal.appliedTotal === 'number') return seasonTotal.appliedTotal;
+
+  // Fallback for seasons where ESPN only returns per-week actuals: sum them.
+  const weekly = stats.filter(
+    (s) => s.seasonId === season && s.statSourceId === 0 && (s.scoringPeriodId ?? 0) > 0,
+  );
+  if (weekly.length === 0) return null;
+  return weekly.reduce((sum, s) => sum + (s.appliedTotal ?? 0), 0);
 }
 
 function mustGetCreds(): EspnCredentials {

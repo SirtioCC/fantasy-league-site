@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS players (
   full_name TEXT,
   position TEXT,
   pro_team TEXT,
+  total_points REAL,
   PRIMARY KEY (season, player_id)
 );
 

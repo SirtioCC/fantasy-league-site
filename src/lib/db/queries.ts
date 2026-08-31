@@ -87,6 +87,7 @@ export interface PlayerRow {
   full_name: string | null;
   position: string | null;
   pro_team: string | null;
+  total_points: number | null;
 }
 
 type SqlArg = string | number | null;
