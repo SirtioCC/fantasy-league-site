@@ -1,8 +1,9 @@
+import Link from 'next/link';
 import { hasAnyData } from '@/lib/db';
 import { getOwners } from '@/lib/db/queries';
 import { buildHeadToHeadMatrix, getRivalry } from '@/lib/analytics/headToHead';
 import { EmptyState } from '@/components/EmptyState';
-import { RivalryPicker } from '@/components/RivalryPicker';
+import { OwnerPairPicker } from '@/components/OwnerPairPicker';
 import { OwnerLink } from '@/components/OwnerLink';
 
 export const dynamic = 'force-dynamic';
@@ -68,7 +69,13 @@ export default async function HeadToHeadPage({
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold">Rivalry Lookup</h2>
-        <RivalryPicker owners={owners} initialA={a} initialB={b} />
+        <OwnerPairPicker
+          owners={owners}
+          initialA={a}
+          initialB={b}
+          basePath="/head-to-head"
+          buttonLabel="View rivalry"
+        />
 
         {rivalry && (
           <div className="card flex flex-col gap-4 p-5">
@@ -89,6 +96,11 @@ export default async function HeadToHeadPage({
               {rivalry.ties > 0 && (
                 <div className="w-full text-sm text-muted">({rivalry.ties} ties)</div>
               )}
+              <div className="w-full text-xs">
+                <Link href={`/compare?a=${rivalry.ownerAId}&b=${rivalry.ownerBId}`} className="text-brand hover:underline">
+                  Compare their whole careers →
+                </Link>
+              </div>
             </div>
 
             <div className="overflow-x-auto">

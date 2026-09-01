@@ -3,14 +3,18 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-export function RivalryPicker({
+export function OwnerPairPicker({
   owners,
   initialA,
   initialB,
+  basePath,
+  buttonLabel,
 }: {
   owners: { owner_id: string; display_name: string }[];
   initialA?: string;
   initialB?: string;
+  basePath: string;
+  buttonLabel: string;
 }) {
   const router = useRouter();
   const [a, setA] = useState(initialA ?? owners[0]?.owner_id ?? '');
@@ -47,11 +51,11 @@ export function RivalryPicker({
         </select>
       </label>
       <button
-        onClick={() => router.push(`/head-to-head?a=${a}&b=${b}`)}
+        onClick={() => router.push(`${basePath}?a=${a}&b=${b}`)}
         disabled={a === b}
         className="rounded-full bg-brand px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
       >
-        View rivalry
+        {buttonLabel}
       </button>
     </div>
   );
