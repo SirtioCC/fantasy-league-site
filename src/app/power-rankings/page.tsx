@@ -1,5 +1,5 @@
 import { hasAnyData } from '@/lib/db';
-import { getSeasonsWithGames } from '@/lib/db/queries';
+import { getSeasonsWithGames, getTeamsForSeason } from '@/lib/db/queries';
 import { computePowerRankings, computePowerRankingsHistory } from '@/lib/analytics/powerRankings';
 import { getAllGameResults } from '@/lib/analytics/gameResults';
 import { EmptyState } from '@/components/EmptyState';
@@ -20,11 +20,13 @@ export default async function PowerRankingsPage({
   const { season: seasonParam } = await searchParams;
   const season = seasonParam ? Number.parseInt(seasonParam, 10) : seasons[0];
 
-  const [rankings, history, allGames] = await Promise.all([
+  const [rankings, history, allGames, seasonTeams] = await Promise.all([
     computePowerRankings(season),
     computePowerRankingsHistory(season),
     getAllGameResults(),
+    getTeamsForSeason(season),
   ]);
+  const logos = Object.fromEntries(seasonTeams.map((t) => [t.owner_id, t.logo_url]));
   const weeks = Array.from(history.keys()).sort((a, b) => a - b);
 
   const powerSeries: SparklineSeries[] = rankings.map((r) => ({
@@ -66,7 +68,7 @@ export default async function PowerRankingsPage({
         <SeasonPicker seasons={seasons} selected={season} basePath="/power-rankings" />
       </div>
 
-      <PowerRankingsTable rankings={rankings} />
+      <PowerRankingsTable rankings={rankings} logos={logos} />
 
       {weeks.length > 1 && (
         <section className="flex flex-col gap-3">

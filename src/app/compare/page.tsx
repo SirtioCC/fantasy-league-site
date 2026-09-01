@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { hasAnyData } from '@/lib/db';
-import { getOwners } from '@/lib/db/queries';
+import { getLatestTeamByOwner, getOwners } from '@/lib/db/queries';
 import { compareOwners } from '@/lib/analytics/compare';
 import type { SeasonPerformance } from '@/lib/analytics/bestWorst';
 import type { LeagueAward } from '@/lib/analytics/awards';
 import { EmptyState } from '@/components/EmptyState';
 import { OwnerPairPicker } from '@/components/OwnerPairPicker';
 import { OwnerLink } from '@/components/OwnerLink';
+import { TeamLogo } from '@/components/TeamLogo';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,11 @@ export default async function ComparePage({
 }) {
   if (!(await hasAnyData())) return <EmptyState />;
 
-  const [owners, { a, b }] = await Promise.all([getOwners(), searchParams]);
+  const [owners, latestTeams, { a, b }] = await Promise.all([
+    getOwners(),
+    getLatestTeamByOwner(),
+    searchParams,
+  ]);
   const comparison = a && b && a !== b ? await compareOwners(a, b) : null;
 
   const { ownerA, ownerB, bestSeasonA, bestSeasonB, awardsA, awardsB, headToHead } = comparison ?? {};
@@ -112,14 +117,26 @@ export default async function ComparePage({
       {ownerA && ownerB && (
         <div className="card flex flex-col gap-6 p-5">
           <div className="flex flex-wrap items-center justify-center gap-4 text-center sm:gap-8">
-            <div className="min-w-0">
+            <div className="flex min-w-0 flex-col items-center gap-2">
+              <TeamLogo
+                logoUrl={latestTeams.get(ownerA.ownerId)?.logo_url}
+                name={ownerA.teamNames[ownerA.teamNames.length - 1] ?? ownerA.displayName}
+                ownerId={ownerA.ownerId}
+                size="lg"
+              />
               <div className="truncate text-lg font-extrabold sm:text-xl">
                 <OwnerLink ownerId={ownerA.ownerId}>{ownerA.displayName}</OwnerLink>
               </div>
               <div className="truncate text-xs text-muted">{ownerA.teamNames.join(' · ')}</div>
             </div>
             <div className="text-sm font-bold text-muted">VS</div>
-            <div className="min-w-0">
+            <div className="flex min-w-0 flex-col items-center gap-2">
+              <TeamLogo
+                logoUrl={latestTeams.get(ownerB.ownerId)?.logo_url}
+                name={ownerB.teamNames[ownerB.teamNames.length - 1] ?? ownerB.displayName}
+                ownerId={ownerB.ownerId}
+                size="lg"
+              />
               <div className="truncate text-lg font-extrabold sm:text-xl">
                 <OwnerLink ownerId={ownerB.ownerId}>{ownerB.displayName}</OwnerLink>
               </div>

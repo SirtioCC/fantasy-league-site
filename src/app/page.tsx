@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { hasAnyData } from '@/lib/db';
-import { getLatestSeason } from '@/lib/db/queries';
+import { getLatestSeason, getTeamsForSeason } from '@/lib/db/queries';
 import { buildSeasonPerformances } from '@/lib/analytics/bestWorst';
 import { computePowerRankings } from '@/lib/analytics/powerRankings';
 import { getRecordBook } from '@/lib/analytics/records';
@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { StatCard } from '@/components/StatCard';
 import { LEAGUE_NAME, LEAGUE_TAGLINE } from '@/lib/branding';
 import { OwnerLink } from '@/components/OwnerLink';
+import { TeamLogo } from '@/components/TeamLogo';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,11 +33,13 @@ export default async function DashboardPage() {
       return wpB - wpA || b.pointsFor - a.pointsFor;
     });
 
-  const [allPowerRankings, recordBook] = await Promise.all([
+  const [allPowerRankings, recordBook, seasonTeams] = await Promise.all([
     computePowerRankings(latestSeason.season),
     getRecordBook(),
+    getTeamsForSeason(latestSeason.season),
   ]);
   const powerRankings = allPowerRankings.slice(0, 5);
+  const logos = new Map(seasonTeams.map((t) => [t.owner_id, t.logo_url]));
 
   return (
     <div className="flex flex-col gap-8">
@@ -66,8 +69,16 @@ export default async function DashboardPage() {
                 <tr key={s.teamId}>
                   <td data-label="#" className="font-semibold text-muted">{s.finalRank ?? i + 1}</td>
                   <td data-label="Team" className="font-medium">
-                    <OwnerLink ownerId={s.ownerId}>{s.teamName}</OwnerLink>
-                    {s.isChampion && <span className="ml-1.5">🏆</span>}
+                    <span className="flex items-center justify-end gap-2 sm:justify-start">
+                      <TeamLogo
+                        logoUrl={logos.get(s.ownerId)}
+                        name={s.teamName}
+                        ownerId={s.ownerId}
+                        size="sm"
+                      />
+                      <OwnerLink ownerId={s.ownerId}>{s.teamName}</OwnerLink>
+                      {s.isChampion && <span>🏆</span>}
+                    </span>
                   </td>
                   <td data-label="Owner" className="text-muted">
                     <OwnerLink ownerId={s.ownerId}>{s.ownerName}</OwnerLink>
@@ -95,7 +106,10 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {powerRankings.map((r) => (
             <div key={r.teamId} className="card flex flex-col gap-1 p-4">
-              <span className="text-xs font-semibold text-muted">#{r.rank}</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-muted">#{r.rank}</span>
+                <TeamLogo logoUrl={logos.get(r.ownerId)} name={r.teamName} ownerId={r.ownerId} size="sm" />
+              </div>
               <span className="font-bold">
                 <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
               </span>

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { hasAnyData } from '@/lib/db';
+import { getLatestTeamByOwner } from '@/lib/db/queries';
 import { getAllTimeStandings } from '@/lib/analytics/records';
 import { getRecordBook } from '@/lib/analytics/records';
 import { EmptyState } from '@/components/EmptyState';
@@ -12,7 +13,15 @@ export const dynamic = 'force-dynamic';
 export default async function StandingsPage() {
   if (!(await hasAnyData())) return <EmptyState />;
 
-  const [standings, recordBook] = await Promise.all([getAllTimeStandings(), getRecordBook()]);
+  const [standings, recordBook, latestTeams] = await Promise.all([
+    getAllTimeStandings(),
+    getRecordBook(),
+    getLatestTeamByOwner(),
+  ]);
+
+  const logos = Object.fromEntries(
+    standings.map((s) => [s.ownerId, latestTeams.get(s.ownerId)?.logo_url ?? null]),
+  );
 
   const pointsForData = [...standings]
     .sort((a, b) => b.pointsFor - a.pointsFor)
@@ -28,7 +37,7 @@ export default async function StandingsPage() {
         </p>
       </div>
 
-      <StandingsTable standings={standings} />
+      <StandingsTable standings={standings} logos={logos} />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold">All-Time Points For</h2>

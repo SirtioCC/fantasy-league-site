@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { OwnerLink } from './OwnerLink';
 import { MobileSortControl } from './MobileSortControl';
+import { TeamLogo } from './TeamLogo';
 import type { PowerRankingRow } from '@/lib/analytics/powerRankings';
 
 type SortKey = 'teamName' | 'ownerName' | 'powerScore' | 'winPct' | 'avgPoints' | 'scheduleStrength';
@@ -19,7 +20,14 @@ const COLUMNS: { key: SortKey; label: string }[] = [
 /** Sortable Power Rankings table — click any column header to sort by it,
  * click again to flip direction. "#" always reflects the row's position
  * in whatever order is currently shown. */
-export function PowerRankingsTable({ rankings }: { rankings: PowerRankingRow[] }) {
+export function PowerRankingsTable({
+  rankings,
+  logos = {},
+}: {
+  rankings: PowerRankingRow[];
+  /** Owner id -> that season's team logo, for the avatar column. */
+  logos?: Record<string, string | null>;
+}) {
   const [sortKey, setSortKey] = useState<SortKey>('powerScore');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -72,7 +80,10 @@ export function PowerRankingsTable({ rankings }: { rankings: PowerRankingRow[] }
             <tr key={r.teamId}>
               <td data-label="#" className="font-semibold text-muted">{i + 1}</td>
               <td data-label="Team" className="font-medium">
-                <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                <span className="flex items-center justify-end gap-2 sm:justify-start">
+                  <TeamLogo logoUrl={logos[r.ownerId]} name={r.teamName} ownerId={r.ownerId} size="sm" />
+                  <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                </span>
               </td>
               <td data-label="Owner" className="text-muted">
                 <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>

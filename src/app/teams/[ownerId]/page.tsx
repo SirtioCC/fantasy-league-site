@@ -1,6 +1,9 @@
 import { notFound } from 'next/navigation';
 import { hasAnyData } from '@/lib/db';
+import { getTeamsForOwner } from '@/lib/db/queries';
 import { getOwnerProfile } from '@/lib/analytics/ownerProfile';
+import { TeamLogo } from '@/components/TeamLogo';
+import { ownerColor } from '@/lib/ownerColor';
 import { StatCard } from '@/components/StatCard';
 import { EmptyState } from '@/components/EmptyState';
 import { OwnerLink } from '@/components/OwnerLink';
@@ -24,16 +27,29 @@ export default async function OwnerProfilePage({
   if (!profile) notFound();
 
   const { summary } = profile;
+  const ownerTeams = await getTeamsForOwner(ownerId);
+  const latestTeam = ownerTeams[ownerTeams.length - 1];
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-extrabold">{profile.displayName}</h1>
-        {summary && (
-          <p className="text-sm text-muted">
-            {summary.seasonsPlayed} seasons · {summary.teamNames.join(' · ')}
-          </p>
-        )}
+      <div
+        style={{ borderLeftColor: ownerColor(ownerId) }}
+        className="flex items-center gap-4 border-l-4 pl-4"
+      >
+        <TeamLogo
+          logoUrl={latestTeam?.logo_url}
+          name={latestTeam?.team_name ?? profile.displayName}
+          ownerId={ownerId}
+          size="lg"
+        />
+        <div className="min-w-0">
+          <h1 className="text-2xl font-extrabold">{profile.displayName}</h1>
+          {summary && (
+            <p className="text-sm text-muted">
+              {summary.seasonsPlayed} seasons · {summary.teamNames.join(' · ')}
+            </p>
+          )}
+        </div>
       </div>
 
       {profile.timeline.length > 0 && (

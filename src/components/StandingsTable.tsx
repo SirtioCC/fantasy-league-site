@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { OwnerLink } from './OwnerLink';
 import { MobileSortControl } from './MobileSortControl';
+import { TeamLogo } from './TeamLogo';
 import type { OwnerAllTimeSummary } from '@/lib/analytics/records';
 
 type SortKey =
@@ -33,7 +34,14 @@ const COLUMNS: { key: SortKey; label: string; center?: boolean }[] = [
 /** Sortable all-time standings table — click any column header to sort by
  * it, click again to flip direction. "#" always reflects the row's
  * position in whatever order is currently shown. */
-export function StandingsTable({ standings }: { standings: OwnerAllTimeSummary[] }) {
+export function StandingsTable({
+  standings,
+  logos = {},
+}: {
+  standings: OwnerAllTimeSummary[];
+  /** Owner id -> that owner's current team logo, for the avatar column. */
+  logos?: Record<string, string | null>;
+}) {
   const [sortKey, setSortKey] = useState<SortKey>('winPct');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -84,7 +92,15 @@ export function StandingsTable({ standings }: { standings: OwnerAllTimeSummary[]
             <tr key={s.ownerId}>
               <td data-label="#" className="font-semibold text-muted">{i + 1}</td>
               <td data-label="Owner" className="font-medium">
-                <OwnerLink ownerId={s.ownerId}>{s.displayName}</OwnerLink>
+                <span className="flex items-center justify-end gap-2 sm:justify-start">
+                  <TeamLogo
+                    logoUrl={logos[s.ownerId]}
+                    name={s.teamNames[s.teamNames.length - 1] ?? s.displayName}
+                    ownerId={s.ownerId}
+                    size="sm"
+                  />
+                  <OwnerLink ownerId={s.ownerId}>{s.displayName}</OwnerLink>
+                </span>
               </td>
               <td data-label="Record">
                 {s.wins}-{s.losses}

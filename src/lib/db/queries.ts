@@ -150,6 +150,16 @@ export function getTeamsForOwner(ownerId: string): Promise<TeamRow[]> {
   return all<TeamRow>('SELECT * FROM teams WHERE owner_id = ? ORDER BY season', [ownerId]);
 }
 
+/** Each owner's most recent team, keyed by owner id — the source of their
+ * current visual identity (logo, team name) on pages that only carry an
+ * owner id rather than a specific season's team. */
+export async function getLatestTeamByOwner(): Promise<Map<string, TeamRow>> {
+  const teams = await all<TeamRow>('SELECT * FROM teams ORDER BY season');
+  const latest = new Map<string, TeamRow>();
+  for (const team of teams) latest.set(team.owner_id, team);
+  return latest;
+}
+
 export function getAllStandings(): Promise<StandingRow[]> {
   return all<StandingRow>('SELECT * FROM standings');
 }
