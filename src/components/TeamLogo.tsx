@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { initialsFor, ownerColor } from '@/lib/ownerColor';
+import { teamLogoSrc } from '@/lib/teamLogoSrc';
 
 const SIZES = {
   sm: 'h-6 w-6 text-[0.55rem]',
@@ -45,7 +46,7 @@ export function TeamLogo({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         ref={imgRef}
-        src={logoUrl}
+        src={teamLogoSrc(logoUrl)}
         alt=""
         loading="lazy"
         onError={() => setFailed(true)}
