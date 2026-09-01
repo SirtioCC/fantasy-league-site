@@ -68,10 +68,31 @@ export async function GET(request: NextRequest) {
     current = next;
   }
 
+  const contentType = response.headers.get('content-type') ?? '';
+
+  // Outside production, ?debug=1 reports what ESPN actually said instead of
+  // collapsing every failure into a bare 404 — otherwise a refused logo is
+  // indistinguishable from a missing one. Never enabled in production: the
+  // upstream body can echo back account or auth detail.
+  if (process.env.NODE_ENV !== 'production' && request.nextUrl.searchParams.get('debug') === '1') {
+    const snippet = await response
+      .text()
+      .then((body) => body.slice(0, 400))
+      .catch(() => '<unreadable body>');
+    return Response.json({
+      requested: target.toString(),
+      finalUrl: current.toString(),
+      sentCredentials: Boolean(creds),
+      upstreamStatus: response.status,
+      upstreamContentType: contentType,
+      upstreamHeaders: Object.fromEntries(response.headers),
+      bodySnippet: snippet,
+    });
+  }
+
   // Anything but a real image (an ESPN error page, a 401, an HTML login
   // redirect) becomes a 404 so the client's onError swaps in the initials
   // avatar instead of rendering a broken image.
-  const contentType = response.headers.get('content-type') ?? '';
   if (!response.ok || !contentType.startsWith('image/') || !response.body) {
     return new Response('Logo unavailable', { status: 404 });
   }
