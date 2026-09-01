@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { hasAnyData } from '@/lib/db';
-import { getOwners } from '@/lib/db/queries';
+import { getLatestTeamByOwner, getOwners } from '@/lib/db/queries';
 import { buildHeadToHeadMatrix, getRivalry } from '@/lib/analytics/headToHead';
 import { EmptyState } from '@/components/EmptyState';
 import { OwnerPairPicker } from '@/components/OwnerPairPicker';
+import { TeamLogo } from '@/components/TeamLogo';
 import { OwnerLink } from '@/components/OwnerLink';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,12 @@ export default async function HeadToHeadPage({
 }) {
   if (!(await hasAnyData())) return <EmptyState />;
 
-  const [owners, matrix, { a, b }] = await Promise.all([getOwners(), buildHeadToHeadMatrix(), searchParams]);
+  const [owners, matrix, latestTeams, { a, b }] = await Promise.all([
+    getOwners(),
+    buildHeadToHeadMatrix(),
+    getLatestTeamByOwner(),
+    searchParams,
+  ]);
   const rivalry = a && b && a !== b ? await getRivalry(a, b) : null;
 
   return (
@@ -42,7 +48,15 @@ export default async function HeadToHeadPage({
               {matrix.map((row) => (
                 <tr key={row.ownerId}>
                   <td className="sticky left-0 z-10 bg-surface font-medium">
-                    <OwnerLink ownerId={row.ownerId}>{row.ownerName}</OwnerLink>
+                    <span className="flex items-center gap-2">
+                      <TeamLogo
+                        logoUrl={latestTeams.get(row.ownerId)?.logo_url}
+                        name={latestTeams.get(row.ownerId)?.team_name ?? row.ownerName}
+                        ownerId={row.ownerId}
+                        size="sm"
+                      />
+                      <OwnerLink ownerId={row.ownerId}>{row.ownerName}</OwnerLink>
+                    </span>
                   </td>
                   {owners.map((o) => {
                     if (o.owner_id === row.ownerId) {
@@ -80,14 +94,26 @@ export default async function HeadToHeadPage({
         {rivalry && (
           <div className="card flex flex-col gap-4 p-5">
             <div className="flex flex-wrap items-center justify-center gap-3 text-center sm:gap-6">
-              <div className="min-w-0">
+              <div className="flex min-w-0 flex-col items-center gap-2">
+                <TeamLogo
+                  logoUrl={latestTeams.get(rivalry.ownerAId)?.logo_url}
+                  name={latestTeams.get(rivalry.ownerAId)?.team_name ?? rivalry.ownerAName}
+                  ownerId={rivalry.ownerAId}
+                  size="lg"
+                />
                 <div className="truncate text-base font-extrabold sm:text-xl">
                   <OwnerLink ownerId={rivalry.ownerAId}>{rivalry.ownerAName}</OwnerLink>
                 </div>
                 <div className="text-2xl font-extrabold text-brand sm:text-3xl">{rivalry.ownerAWins}</div>
               </div>
               <div className="text-muted">vs</div>
-              <div className="min-w-0">
+              <div className="flex min-w-0 flex-col items-center gap-2">
+                <TeamLogo
+                  logoUrl={latestTeams.get(rivalry.ownerBId)?.logo_url}
+                  name={latestTeams.get(rivalry.ownerBId)?.team_name ?? rivalry.ownerBName}
+                  ownerId={rivalry.ownerBId}
+                  size="lg"
+                />
                 <div className="truncate text-base font-extrabold sm:text-xl">
                   <OwnerLink ownerId={rivalry.ownerBId}>{rivalry.ownerBName}</OwnerLink>
                 </div>

@@ -1,15 +1,21 @@
 import { hasAnyData } from '@/lib/db';
+import { getLogoBySeasonTeam } from '@/lib/db/queries';
 import { computeLeagueAwards } from '@/lib/analytics/awards';
 import { championshipSeasons } from '@/lib/analytics/bestWorst';
 import { EmptyState } from '@/components/EmptyState';
 import { OwnerLink } from '@/components/OwnerLink';
+import { TeamLogo } from '@/components/TeamLogo';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AwardsPage() {
   if (!(await hasAnyData())) return <EmptyState />;
 
-  const [awards, champions] = await Promise.all([computeLeagueAwards(), championshipSeasons()]);
+  const [awards, champions, seasonLogos] = await Promise.all([
+    computeLeagueAwards(),
+    championshipSeasons(),
+    getLogoBySeasonTeam(),
+  ]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -67,7 +73,15 @@ export default async function AwardsPage() {
                     <OwnerLink ownerId={c.ownerId}>{c.ownerName}</OwnerLink>
                   </td>
                   <td data-label="Team" className="text-muted">
-                    <OwnerLink ownerId={c.ownerId}>{c.teamName}</OwnerLink>
+                    <span className="flex items-center justify-end gap-2 sm:justify-start">
+                      <TeamLogo
+                        logoUrl={seasonLogos.get(`${c.season}:${c.teamId}`)}
+                        name={c.teamName}
+                        ownerId={c.ownerId}
+                        size="sm"
+                      />
+                      <OwnerLink ownerId={c.ownerId}>{c.teamName}</OwnerLink>
+                    </span>
                   </td>
                   <td data-label="Record">
                     {c.wins}-{c.losses}

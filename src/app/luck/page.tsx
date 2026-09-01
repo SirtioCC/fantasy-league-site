@@ -1,10 +1,11 @@
 import { hasAnyData } from '@/lib/db';
-import { getSeasonsWithGames } from '@/lib/db/queries';
+import { getLatestTeamByOwner, getLogoBySeasonTeam, getSeasonsWithGames } from '@/lib/db/queries';
 import { computeLuckRatings } from '@/lib/analytics/luck';
 import { EmptyState } from '@/components/EmptyState';
 import { SeasonPicker } from '@/components/SeasonPicker';
 import { LuckScatter, type LuckPoint } from '@/components/charts/LuckScatter';
 import { OwnerLink } from '@/components/OwnerLink';
+import { TeamLogo } from '@/components/TeamLogo';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,12 @@ export default async function LuckPage({
   const { season: seasonParam } = await searchParams;
   const season = seasonParam ? Number.parseInt(seasonParam, 10) : seasons[0];
 
-  const [seasonLuck, allTimeLuck] = await Promise.all([computeLuckRatings(season), computeLuckRatings()]);
+  const [seasonLuck, allTimeLuck, seasonLogos, latestTeams] = await Promise.all([
+    computeLuckRatings(season),
+    computeLuckRatings(),
+    getLogoBySeasonTeam(),
+    getLatestTeamByOwner(),
+  ]);
 
   const ownerLuckTotals = new Map<string, { ownerId: string; ownerName: string; luck: number; seasons: number }>();
   for (const row of allTimeLuck) {
@@ -70,7 +76,15 @@ export default async function LuckPage({
             {seasonLuck.map((r) => (
               <tr key={r.teamId}>
                 <td data-label="Team" className="font-medium">
-                  <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                  <span className="flex items-center justify-end gap-2 sm:justify-start">
+                    <TeamLogo
+                      logoUrl={seasonLogos.get(`${season}:${r.teamId}`)}
+                      name={r.teamName}
+                      ownerId={r.ownerId}
+                      size="sm"
+                    />
+                    <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                  </span>
                 </td>
                 <td data-label="Owner" className="text-muted">
                   <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
@@ -126,7 +140,15 @@ export default async function LuckPage({
               {allTimeLeaderboard.map((o) => (
                 <tr key={o.ownerId}>
                   <td data-label="Owner" className="font-medium">
-                    <OwnerLink ownerId={o.ownerId}>{o.ownerName}</OwnerLink>
+                    <span className="flex items-center justify-end gap-2 sm:justify-start">
+                      <TeamLogo
+                        logoUrl={latestTeams.get(o.ownerId)?.logo_url}
+                        name={latestTeams.get(o.ownerId)?.team_name ?? o.ownerName}
+                        ownerId={o.ownerId}
+                        size="sm"
+                      />
+                      <OwnerLink ownerId={o.ownerId}>{o.ownerName}</OwnerLink>
+                    </span>
                   </td>
                   <td data-label="Seasons">{o.seasons}</td>
                   <td

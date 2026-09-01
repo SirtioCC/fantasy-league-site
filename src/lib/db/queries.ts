@@ -150,6 +150,14 @@ export function getTeamsForOwner(ownerId: string): Promise<TeamRow[]> {
   return all<TeamRow>('SELECT * FROM teams WHERE owner_id = ? ORDER BY season', [ownerId]);
 }
 
+/** Team logos keyed by `${season}:${team_id}`, for tables whose rows are a
+ * particular season's team — a manager's logo can change between seasons,
+ * so their current one would be wrong on a historical row. */
+export async function getLogoBySeasonTeam(): Promise<Map<string, string | null>> {
+  const teams = await all<TeamRow>('SELECT * FROM teams');
+  return new Map(teams.map((t) => [`${t.season}:${t.team_id}`, t.logo_url]));
+}
+
 /** Each owner's most recent team, keyed by owner id — the source of their
  * current visual identity (logo, team name) on pages that only carry an
  * owner id rather than a specific season's team. */

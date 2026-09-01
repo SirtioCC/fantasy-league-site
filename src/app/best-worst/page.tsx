@@ -7,15 +7,21 @@ import {
   worstSeasonsByPoints,
   worstSeasonsByWins,
 } from '@/lib/analytics/bestWorst';
+import { getLogoBySeasonTeam } from '@/lib/db/queries';
 import { EmptyState } from '@/components/EmptyState';
 import { OwnerLink } from '@/components/OwnerLink';
+import { TeamLogo } from '@/components/TeamLogo';
 
 export const dynamic = 'force-dynamic';
+
+/** Logos keyed by `${season}:${teamId}` — every table here is a list of
+ * specific seasons, so each row wants that season's logo. */
+type SeasonLogos = Map<string, string | null>;
 
 export default async function BestWorstPage() {
   if (!(await hasAnyData())) return <EmptyState />;
 
-  const [bestByWins, worstByWinsList, bestByPoints, worstByPointsList, champions, consistency] =
+  const [bestByWins, worstByWinsList, bestByPoints, worstByPointsList, champions, consistency, seasonLogos] =
     await Promise.all([
       bestSeasonsByWins(10),
       worstSeasonsByWins(10),
@@ -23,6 +29,7 @@ export default async function BestWorstPage() {
       worstSeasonsByPoints(10),
       championshipSeasons(),
       computeConsistency(),
+      getLogoBySeasonTeam(),
     ]);
 
   const mostConsistent = [...consistency].sort((a, b) => a.stdDev - b.stdDev).slice(0, 8);
@@ -39,10 +46,10 @@ export default async function BestWorstPage() {
       </div>
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SeasonTable title="Best Seasons by Wins" rows={bestByWins} metric="wins" />
-        <SeasonTable title="Worst Seasons by Wins" rows={worstByWinsList} metric="wins" />
-        <SeasonTable title="Best Seasons by Points" rows={bestByPoints} metric="points" />
-        <SeasonTable title="Worst Seasons by Points" rows={worstByPointsList} metric="points" />
+        <SeasonTable title="Best Seasons by Wins" rows={bestByWins} metric="wins" logos={seasonLogos} />
+        <SeasonTable title="Worst Seasons by Wins" rows={worstByWinsList} metric="wins" logos={seasonLogos} />
+        <SeasonTable title="Best Seasons by Points" rows={bestByPoints} metric="points" logos={seasonLogos} />
+        <SeasonTable title="Worst Seasons by Points" rows={worstByPointsList} metric="points" logos={seasonLogos} />
       </section>
 
       <section className="flex flex-col gap-3">
@@ -66,7 +73,15 @@ export default async function BestWorstPage() {
                     <OwnerLink ownerId={c.ownerId}>{c.ownerName}</OwnerLink>
                   </td>
                   <td data-label="Team" className="text-muted">
-                    <OwnerLink ownerId={c.ownerId}>{c.teamName}</OwnerLink>
+                    <span className="flex items-center justify-end gap-2 sm:justify-start">
+                      <TeamLogo
+                        logoUrl={seasonLogos.get(`${c.season}:${c.teamId}`)}
+                        name={c.teamName}
+                        ownerId={c.ownerId}
+                        size="sm"
+                      />
+                      <OwnerLink ownerId={c.ownerId}>{c.teamName}</OwnerLink>
+                    </span>
                   </td>
                   <td data-label="Record">
                     {c.wins}-{c.losses}
@@ -91,12 +106,12 @@ export default async function BestWorstPage() {
         <div className="flex flex-col gap-3">
           <h2 className="text-lg font-bold">Most Consistent Teams</h2>
           <p className="text-xs text-muted">Lowest week-to-week scoring standard deviation (single season).</p>
-          <ConsistencyTable rows={mostConsistent} />
+          <ConsistencyTable rows={mostConsistent} logos={seasonLogos} />
         </div>
         <div className="flex flex-col gap-3">
           <h2 className="text-lg font-bold">Most Volatile Teams</h2>
           <p className="text-xs text-muted">Highest week-to-week scoring standard deviation (single season).</p>
-          <ConsistencyTable rows={mostVolatile} />
+          <ConsistencyTable rows={mostVolatile} logos={seasonLogos} />
         </div>
       </section>
 
@@ -122,7 +137,15 @@ export default async function BestWorstPage() {
                 <tr key={`${r.season}-${r.teamId}`}>
                   <td data-label="Season" className="font-semibold">{r.season}</td>
                   <td data-label="Team" className="font-medium">
-                    <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                    <span className="flex items-center justify-end gap-2 sm:justify-start">
+                      <TeamLogo
+                        logoUrl={seasonLogos.get(`${r.season}:${r.teamId}`)}
+                        name={r.teamName}
+                        ownerId={r.ownerId}
+                        size="sm"
+                      />
+                      <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                    </span>
                   </td>
                   <td data-label="Owner" className="text-muted">
                     <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
@@ -144,10 +167,12 @@ function SeasonTable({
   title,
   rows,
   metric,
+  logos,
 }: {
   title: string;
   rows: Awaited<ReturnType<typeof bestSeasonsByWins>>;
   metric: 'wins' | 'points';
+  logos: SeasonLogos;
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -171,7 +196,15 @@ function SeasonTable({
                   <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
                 </td>
                 <td data-label="Team" className="text-muted">
-                  <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                  <span className="flex items-center justify-end gap-2 sm:justify-start">
+                    <TeamLogo
+                      logoUrl={logos.get(`${r.season}:${r.teamId}`)}
+                      name={r.teamName}
+                      ownerId={r.ownerId}
+                      size="sm"
+                    />
+                    <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                  </span>
                 </td>
                 <td data-label="Record" className={metric === 'wins' ? 'font-bold text-brand' : ''}>
                   {r.wins}-{r.losses}
@@ -189,7 +222,13 @@ function SeasonTable({
   );
 }
 
-function ConsistencyTable({ rows }: { rows: Awaited<ReturnType<typeof computeConsistency>> }) {
+function ConsistencyTable({
+  rows,
+  logos,
+}: {
+  rows: Awaited<ReturnType<typeof computeConsistency>>;
+  logos: SeasonLogos;
+}) {
   return (
     <div className="card overflow-x-auto">
       <table className="table-clean table-responsive w-full">
@@ -207,7 +246,15 @@ function ConsistencyTable({ rows }: { rows: Awaited<ReturnType<typeof computeCon
             <tr key={`${r.season}-${r.teamId}`}>
               <td data-label="Season" className="font-semibold">{r.season}</td>
               <td data-label="Team" className="font-medium">
-                <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                <span className="flex items-center justify-end gap-2 sm:justify-start">
+                  <TeamLogo
+                    logoUrl={logos.get(`${r.season}:${r.teamId}`)}
+                    name={r.teamName}
+                    ownerId={r.ownerId}
+                    size="sm"
+                  />
+                  <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
+                </span>
               </td>
               <td data-label="Owner" className="text-muted">
                 <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
