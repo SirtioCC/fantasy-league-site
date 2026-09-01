@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { Nav } from '@/components/Nav';
 import { LEAGUE_NAME } from '@/lib/branding';
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         <footer className="border-t border-border px-4 py-6 text-center text-xs text-muted sm:px-6">
           {LEAGUE_NAME} · Data pulled from the ESPN Fantasy Football API
         </footer>
+        <Analytics />
       </body>
     </html>
   );
