@@ -11,6 +11,7 @@ const LINKS = [
   { href: '/power-rankings', label: 'Power Rankings' },
   { href: '/luck', label: 'Luck Analysis' },
   { href: '/best-worst', label: 'Best & Worst' },
+  { href: '/awards', label: 'Hall of Fame' },
   { href: '/head-to-head', label: 'Head-to-Head' },
   { href: '/teams', label: 'Owners' },
 ];
