@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { OwnerLink } from './OwnerLink';
+import { MobileSortControl } from './MobileSortControl';
 import type { OwnerAllTimeSummary } from '@/lib/analytics/records';
 
 type SortKey =
@@ -53,6 +54,13 @@ export function StandingsTable({ standings }: { standings: OwnerAllTimeSummary[]
 
   return (
     <div className="card overflow-x-auto">
+      <MobileSortControl
+        columns={COLUMNS}
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSortKeyChange={handleSort}
+        onToggleDir={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
+      />
       <table className="table-clean table-responsive w-full">
         <thead>
           <tr>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { OwnerLink } from './OwnerLink';
+import { MobileSortControl } from './MobileSortControl';
 import type { PowerRankingRow } from '@/lib/analytics/powerRankings';
 
 type SortKey = 'teamName' | 'ownerName' | 'powerScore' | 'winPct' | 'avgPoints' | 'scheduleStrength';
@@ -41,6 +42,13 @@ export function PowerRankingsTable({ rankings }: { rankings: PowerRankingRow[] }
 
   return (
     <div className="card overflow-x-auto">
+      <MobileSortControl
+        columns={COLUMNS}
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSortKeyChange={handleSort}
+        onToggleDir={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
+      />
       <table className="table-clean table-responsive w-full">
         <thead>
           <tr>
