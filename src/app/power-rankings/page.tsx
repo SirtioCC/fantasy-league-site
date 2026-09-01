@@ -5,7 +5,7 @@ import { getAllGameResults } from '@/lib/analytics/gameResults';
 import { EmptyState } from '@/components/EmptyState';
 import { SparklineGrid, type SparklineSeries } from '@/components/charts/SparklineGrid';
 import { SeasonPicker } from '@/components/SeasonPicker';
-import { OwnerLink } from '@/components/OwnerLink';
+import { PowerRankingsTable } from '@/components/PowerRankingsTable';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,38 +66,7 @@ export default async function PowerRankingsPage({
         <SeasonPicker seasons={seasons} selected={season} basePath="/power-rankings" />
       </div>
 
-      <div className="card overflow-x-auto">
-        <table className="table-clean table-responsive w-full">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Team</th>
-              <th>Owner</th>
-              <th>Power Score</th>
-              <th>Record</th>
-              <th>Avg Pts</th>
-              <th>Sched. Strength</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rankings.map((r) => (
-              <tr key={r.teamId}>
-                <td data-label="#" className="font-semibold text-muted">{r.rank}</td>
-                <td data-label="Team" className="font-medium">
-                  <OwnerLink ownerId={r.ownerId}>{r.teamName}</OwnerLink>
-                </td>
-                <td data-label="Owner" className="text-muted">
-                  <OwnerLink ownerId={r.ownerId}>{r.ownerName}</OwnerLink>
-                </td>
-                <td data-label="Power Score" className="font-bold text-brand">{r.powerScore.toFixed(1)}</td>
-                <td data-label="Record">{r.record}</td>
-                <td data-label="Avg Pts">{r.avgPoints.toFixed(1)}</td>
-                <td data-label="Sched. Strength">{r.scheduleStrength.toFixed(1)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <PowerRankingsTable rankings={rankings} />
 
       {weeks.length > 1 && (
         <section className="flex flex-col gap-3">
