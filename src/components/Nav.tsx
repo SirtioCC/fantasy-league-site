@@ -15,6 +15,7 @@ const LINKS = [
   { href: '/head-to-head', label: 'Head-to-Head' },
   { href: '/compare', label: 'Compare' },
   { href: '/teams', label: 'Owners' },
+  { href: '/schedule', label: 'Schedule' },
   { href: '/dues', label: 'Entry Fees' },
 ];
 
