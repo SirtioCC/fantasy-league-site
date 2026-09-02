@@ -15,6 +15,7 @@ const LINKS = [
   { href: '/head-to-head', label: 'Head-to-Head' },
   { href: '/compare', label: 'Compare' },
   { href: '/teams', label: 'Owners' },
+  { href: '/dues', label: 'Entry Fees' },
 ];
 
 function isActive(pathname: string, href: string): boolean {
