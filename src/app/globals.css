@@ -12,6 +12,14 @@
   --accent: #15803d;
   --accent-warm: #dc2626;
   --gold: #ca8a04;
+
+  /* Cards and tables are outlined in a brand-tinted border rather than a
+   * neutral grey, with a soft glow behind them, so panels read as distinct
+   * surfaces instead of blending into the page. Both derive from --brand,
+   * so they follow the light/dark palette automatically — turn the whole
+   * effect up or down from these two lines. */
+  --card-border: color-mix(in srgb, var(--brand) 55%, var(--border));
+  --card-glow: color-mix(in srgb, var(--brand) 22%, transparent);
 }
 
 @theme inline {
@@ -65,14 +73,16 @@ body {
 @layer components {
   .card {
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--card-border);
     border-radius: 1rem;
+    box-shadow: 0 1px 3px -1px var(--card-glow), 0 6px 16px -8px var(--card-glow);
   }
 
   .card-muted {
     background: var(--surface-muted);
-    border: 1px solid var(--border);
+    border: 1px solid var(--card-border);
     border-radius: 1rem;
+    box-shadow: 0 1px 3px -1px var(--card-glow), 0 6px 16px -8px var(--card-glow);
   }
 
   .table-clean th {
@@ -122,7 +132,7 @@ body {
     }
     .table-responsive tr {
       display: block;
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       border-radius: 0.75rem;
       padding: 0.25rem 0;
       margin-bottom: 0.6rem;
