@@ -13,7 +13,6 @@ const LINKS = [
   { href: '/best-worst', label: 'Best & Worst' },
   { href: '/awards', label: 'Hall of Fame' },
   { href: '/head-to-head', label: 'Head-to-Head' },
-  { href: '/compare', label: 'Compare' },
   { href: '/teams', label: 'Owners' },
   { href: '/schedule', label: 'Schedule' },
   { href: '/dues', label: 'Entry Fees' },
