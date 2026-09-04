@@ -23,7 +23,7 @@ export interface DuesEntry {
 export const DUES: DuesEntry[] = [
   { teamName: "'22, '24 League Champion", managerName: 'Connor C', paid: true },
   { teamName: 'Gurleys Gone Wild', managerName: 'Alex Corrado', paid: true },
-  { teamName: '3rd Down Surprise Punt', managerName: 'Harrison Davis', paid: false },
+  { teamName: '3rd Down Surprise Punt', managerName: 'Harrison Davis', paid: true },
   { teamName: 'Austin Bowers', managerName: 'Jeff Bloom', paid: true },
   { teamName: 'Bills Simp', managerName: 'Timothy Judge', paid: false },
   { teamName: 'DAWG CHECK', managerName: 'Pierson M', paid: true },
