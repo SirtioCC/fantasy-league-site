@@ -27,7 +27,7 @@ export const DUES: DuesEntry[] = [
   { teamName: 'Austin Bowers', managerName: 'Jeff Bloom', paid: true },
   { teamName: 'Bills Simp', managerName: 'Timothy Judge', paid: true },
   { teamName: 'DAWG CHECK', managerName: 'Pierson M', paid: true },
-  { teamName: 'Eazy Breecey', managerName: 'Ryan Andrew', paid: false },
+  { teamName: 'Eazy Breecey', managerName: 'Ryan Andrew', paid: true },
   { teamName: 'Haywood Joblomee', managerName: 'Nathan Rickard', paid: true },
   { teamName: 'I still hate you all', managerName: 'John Haley', paid: false },
   { teamName: 'Joe Buck Yourself', managerName: 'Ian Munn', paid: true },
