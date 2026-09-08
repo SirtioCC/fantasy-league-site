@@ -25,7 +25,7 @@ export const DUES: DuesEntry[] = [
   { teamName: 'Gurleys Gone Wild', managerName: 'Alex Corrado', paid: true },
   { teamName: '3rd Down Surprise Punt', managerName: 'Harrison Davis', paid: true },
   { teamName: 'Austin Bowers', managerName: 'Jeff Bloom', paid: true },
-  { teamName: 'Bills Simp', managerName: 'Timothy Judge', paid: false },
+  { teamName: 'Bills Simp', managerName: 'Timothy Judge', paid: true },
   { teamName: 'DAWG CHECK', managerName: 'Pierson M', paid: true },
   { teamName: 'Eazy Breecey', managerName: 'Ryan Andrew', paid: false },
   { teamName: 'Haywood Joblomee', managerName: 'Nathan Rickard', paid: true },
