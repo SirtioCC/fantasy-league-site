@@ -1,0 +1,32 @@
+name: Sync live scores
+
+# Vercel's own Cron Jobs are capped at once per day on the Hobby plan --
+# nowhere near frequent enough to catch a game ending on a Thursday,
+# Saturday, Sunday, or Monday. GitHub Actions has no such cap, so this is
+# the actual mechanism behind "the site updates after a game ends": ESPN
+# doesn't push an event when a game finishes, so this polls the site's own
+# sync endpoint often enough that the gap between final whistle and the
+# site catching up stays small, any day games are played.
+#
+# Each run only syncs the current season (?current=1), so a poll every 20
+# minutes stays cheap instead of re-fetching the whole league history.
+# The separate weekly Vercel Cron (see vercel.json) still does that full
+# historical resync.
+on:
+  schedule:
+    - cron: '*/20 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger site sync
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail --silent --show-error \
+            --max-time 120 \
+            --retry 2 --retry-delay 10 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "https://oakwoodffl.vercel.app/api/cron/sync?current=1"
