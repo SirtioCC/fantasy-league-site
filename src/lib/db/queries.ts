@@ -138,6 +138,15 @@ export async function getSeasonsWithGames(): Promise<number[]> {
   return rows.map((r) => r.season);
 }
 
+/** Seasons that have a synced draft, independent of whether any games have
+ * been played yet. A new season has real draft picks the moment the draft
+ * happens, well before its first game is scored — unlike getSeasonsWithGames,
+ * this must not wait for games to exist. */
+export async function getSeasonsWithDraftPicks(): Promise<number[]> {
+  const rows = await all<{ season: number }>('SELECT DISTINCT season FROM draft_picks ORDER BY season DESC');
+  return rows.map((r) => r.season);
+}
+
 export function getAllTeams(): Promise<TeamRow[]> {
   return all<TeamRow>('SELECT * FROM teams');
 }

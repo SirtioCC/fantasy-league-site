@@ -2,6 +2,7 @@ import {
   getDraftPicksForSeason,
   getOwner,
   getPlayersMap,
+  getSeasonsWithDraftPicks,
   getSeasonsWithGames,
   getTeamsForOwner,
 } from '@/lib/db/queries';
@@ -63,18 +64,31 @@ export async function getOwnerProfile(ownerId: string): Promise<OwnerProfile | n
   const owner = await getOwner(ownerId);
   if (!owner) return null;
 
-  const [allTimeStandings, allSeasonPerformances, ownerTeams, awards, rivalrySummary, recordBook, allLuck, seasonsWithGames] =
-    await Promise.all([
-      getAllTimeStandings(),
-      buildSeasonPerformances(),
-      getTeamsForOwner(ownerId),
-      getOwnerAwards(ownerId),
-      getOwnerRivalrySummary(ownerId),
-      getRecordBook(),
-      computeLuckRatings(),
-      getSeasonsWithGames(),
-    ]);
-  const gameSeasons = new Set(seasonsWithGames);
+  const [
+    allTimeStandings,
+    allSeasonPerformances,
+    ownerTeams,
+    awards,
+    rivalrySummary,
+    recordBook,
+    allLuck,
+    seasonsWithGames,
+    seasonsWithDraftPicks,
+  ] = await Promise.all([
+    getAllTimeStandings(),
+    buildSeasonPerformances(),
+    getTeamsForOwner(ownerId),
+    getOwnerAwards(ownerId),
+    getOwnerRivalrySummary(ownerId),
+    getRecordBook(),
+    computeLuckRatings(),
+    getSeasonsWithGames(),
+    getSeasonsWithDraftPicks(),
+  ]);
+  // A season belongs in Draft History once it has a synced draft, even
+  // before its first game is played — the games check alone would hide a
+  // brand-new season right after draft night.
+  const draftEligibleSeasons = new Set([...seasonsWithGames, ...seasonsWithDraftPicks]);
 
   const summary = allTimeStandings.find((o) => o.ownerId === ownerId) ?? null;
   const seasons = allSeasonPerformances
@@ -87,7 +101,7 @@ export async function getOwnerProfile(ownerId: string): Promise<OwnerProfile | n
 
   const perTeamPicks = await Promise.all(
     ownerTeams
-      .filter((team) => gameSeasons.has(team.season))
+      .filter((team) => draftEligibleSeasons.has(team.season))
       .map(async (team) => {
         const picks = (await getDraftPicksForSeason(team.season)).filter((p) => p.team_id === team.team_id);
         if (picks.length === 0) return [];
