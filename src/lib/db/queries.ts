@@ -147,6 +147,36 @@ export async function getSeasonsWithDraftPicks(): Promise<number[]> {
   return rows.map((r) => r.season);
 }
 
+export interface WeeklyPlayerScoreRow {
+  season: number;
+  week: number;
+  player_id: number;
+  full_name: string;
+  position: string | null;
+  pro_team: string | null;
+  points: number;
+  team_id: number | null;
+}
+
+/** Top NFL scorers league-wide for one week, regardless of who (if anyone)
+ * in Oakwood rosters them. */
+export function getTopWeeklyScorers(season: number, week: number, limit = 20): Promise<WeeklyPlayerScoreRow[]> {
+  return all<WeeklyPlayerScoreRow>(
+    'SELECT * FROM weekly_player_scores WHERE season = ? AND week = ? ORDER BY points DESC LIMIT ?',
+    [season, week, limit],
+  );
+}
+
+/** Weeks this season that actually have synced weekly scores, for the Top
+ * Scorers page's week dropdown. */
+export async function getWeeksWithPlayerScores(season: number): Promise<number[]> {
+  const rows = await all<{ week: number }>(
+    'SELECT DISTINCT week FROM weekly_player_scores WHERE season = ? ORDER BY week',
+    [season],
+  );
+  return rows.map((r) => r.week);
+}
+
 export function getAllTeams(): Promise<TeamRow[]> {
   return all<TeamRow>('SELECT * FROM teams');
 }

@@ -8,6 +8,7 @@ import {
   discoverAvailableSeasons,
   fetchLeagueSnapshot,
   fetchPlayersByIds,
+  fetchTopPlayerPool,
   EspnNotFoundError,
 } from './client';
 import type { EspnLeagueResponse, EspnScheduleItem, EspnTeam } from './types';
@@ -320,6 +321,32 @@ async function syncDraftAndTransactions(season: number): Promise<void> {
   }
 }
 
+/** League-wide (not just Oakwood rosters) weekly fantasy points for the most
+ * widely-owned NFL players, used by the Top Scorers page. Only worth
+ * fetching for the current season — a ~400-player pool every sync is cheap
+ * for one season but wasteful to repeat for every past one. */
+async function syncWeeklyPlayerScores(season: number): Promise<void> {
+  const db = await getDb();
+  try {
+    const pool = await fetchTopPlayerPool(season, 400);
+    const statements: InStatement[] = [
+      { sql: 'DELETE FROM weekly_player_scores WHERE season = ?', args: [season] },
+    ];
+    for (const p of pool) {
+      for (const [week, points] of p.weeklyPoints) {
+        statements.push({
+          sql: `INSERT INTO weekly_player_scores (season, week, player_id, full_name, position, pro_team, points, team_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [season, week, p.id, p.fullName, p.position, p.proTeam, points, p.onTeamId],
+        });
+      }
+    }
+    if (statements.length > 1) await db.batch(statements, 'write');
+  } catch (err) {
+    console.warn(`[sync] weekly player scores unavailable for ${season}:`, (err as Error).message);
+  }
+}
+
 export async function syncSeason(season: number): Promise<void> {
   const league = await fetchLeagueSnapshot(
     season,
@@ -329,6 +356,9 @@ export async function syncSeason(season: number): Promise<void> {
   );
   await syncSeasonCore(season, league);
   await syncDraftAndTransactions(season);
+  if (season === getCurrentSeasonYear()) {
+    await syncWeeklyPlayerScores(season);
+  }
 }
 
 export async function syncAll(options: { forceSeason?: number } = {}): Promise<SyncSummary> {

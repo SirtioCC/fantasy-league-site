@@ -208,6 +208,90 @@ function extractSeasonPoints(player: EspnPlayerEntry, season: number): number | 
   return weekly.reduce((sum, s) => sum + (s.appliedTotal ?? 0), 0);
 }
 
+export interface EspnTopPlayer {
+  id: number;
+  fullName: string;
+  position: string | null;
+  proTeam: string | null;
+  /** This league's roster team id currently holding the player, or null if
+   * they're a free agent in this league right now. */
+  onTeamId: number | null;
+  /** scoringPeriodId (week) -> actual applied fantasy points that week. */
+  weeklyPoints: Map<number, number>;
+}
+
+/**
+ * Fetch the most-owned NFL players league-wide (not scoped to who's on an
+ * Oakwood roster), each with their full season stat line broken out by
+ * week — used to compute "top scorers this week" across all of the NFL,
+ * not just this league's rosters. Sorting by percent-owned instead of
+ * requesting a specific week's leaders keeps this to one request and one
+ * well-established ESPN filter; a `limit` generous enough to cover
+ * anyone who could plausibly crack a weekly top 20 (a deep waiver pickup
+ * having a monster week is rare enough that percent-owned is a safe proxy).
+ */
+export async function fetchTopPlayerPool(
+  season: number,
+  limit: number,
+  creds: EspnCredentials = mustGetCreds(),
+): Promise<EspnTopPlayer[]> {
+  const url = `${PLAYERS_BASE}/${season}/segments/0/leagues/${creds.leagueId}/players?scoringPeriodId=0&view=players_wl&view=kona_playercard`;
+  const filter = {
+    players: {
+      limit,
+      sortPercOwned: { sortPriority: 1, sortAsc: false },
+    },
+  };
+
+  const res = await fetch(url, {
+    headers: {
+      Cookie: cookieHeader(creds),
+      Accept: 'application/json',
+      'User-Agent': 'Mozilla/5.0 (fantasy-league-site data sync)',
+      'x-fantasy-filter': JSON.stringify(filter),
+    },
+    cache: 'no-store',
+  });
+
+  if (!res.ok) return [];
+
+  const data = (await res.json()) as
+    | { id: number; onTeamId?: number; player?: EspnPlayerEntry }[]
+    | EspnPlayersResponse;
+  const entries = Array.isArray(data) ? data : data.players ?? [];
+
+  const result: EspnTopPlayer[] = [];
+  for (const entry of entries) {
+    const player = 'player' in entry ? entry.player : (entry as unknown as EspnPlayerEntry);
+    if (!player) continue;
+    const id = 'id' in entry ? entry.id : player.id;
+    const onTeamId = (entry as { onTeamId?: number }).onTeamId ?? 0;
+
+    result.push({
+      id,
+      fullName: player.fullName ?? `Player #${id}`,
+      position: POSITION_MAP[(player as { defaultPositionId?: number }).defaultPositionId ?? -1] ?? null,
+      proTeam: PRO_TEAM_MAP[(player as { proTeamId?: number }).proTeamId ?? -1] ?? null,
+      onTeamId: onTeamId > 0 ? onTeamId : null,
+      weeklyPoints: extractWeeklyPoints(player as EspnPlayerEntry, season),
+    });
+  }
+
+  return result;
+}
+
+function extractWeeklyPoints(player: EspnPlayerEntry, season: number): Map<number, number> {
+  const stats = player.stats ?? [];
+  const map = new Map<number, number>();
+  for (const s of stats) {
+    if (s.seasonId !== season || s.statSourceId !== 0) continue;
+    const week = s.scoringPeriodId ?? 0;
+    if (week <= 0) continue;
+    if (typeof s.appliedTotal === 'number') map.set(week, s.appliedTotal);
+  }
+  return map;
+}
+
 function mustGetCreds(): EspnCredentials {
   const creds = getEspnCredentials();
   if (!creds) {

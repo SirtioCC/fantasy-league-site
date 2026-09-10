@@ -103,7 +103,24 @@ CREATE TABLE IF NOT EXISTS transactions (
   PRIMARY KEY (season, transaction_id, player_id)
 );
 
+-- One row per (season, week, player) for the top-owned NFL players
+-- league-wide, independent of whether they're on an Oakwood roster. Powers
+-- the weekly top-scorers page; team_id is this league's roster owner when
+-- the player is rostered here, NULL for a free agent.
+CREATE TABLE IF NOT EXISTS weekly_player_scores (
+  season INTEGER NOT NULL,
+  week INTEGER NOT NULL,
+  player_id INTEGER NOT NULL,
+  full_name TEXT NOT NULL,
+  position TEXT,
+  pro_team TEXT,
+  points REAL NOT NULL,
+  team_id INTEGER,
+  PRIMARY KEY (season, week, player_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_teams_owner ON teams (owner_id);
+CREATE INDEX IF NOT EXISTS idx_weekly_player_scores_week ON weekly_player_scores (season, week, points DESC);
 CREATE INDEX IF NOT EXISTS idx_matchups_season_week ON matchups (season, week);
 CREATE INDEX IF NOT EXISTS idx_standings_season ON standings (season);
 CREATE INDEX IF NOT EXISTS idx_draft_season ON draft_picks (season);
