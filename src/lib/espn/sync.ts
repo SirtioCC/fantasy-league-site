@@ -17,6 +17,11 @@ export interface SeasonSyncResult {
   season: number;
   ok: boolean;
   error?: string;
+  /** Diagnostics for the separate league-wide weekly-scorers fetch, which
+   * fails independently of the main season sync (best-effort, never fails
+   * the whole sync) — surfaced here since that's otherwise invisible from
+   * outside the server logs. */
+  weeklyScores?: { ok: boolean; playerCount: number; weeksSynced: number; error?: string };
 }
 
 export interface SyncSummary {
@@ -325,15 +330,19 @@ async function syncDraftAndTransactions(season: number): Promise<void> {
  * widely-owned NFL players, used by the Top Scorers page. Only worth
  * fetching for the current season — a ~400-player pool every sync is cheap
  * for one season but wasteful to repeat for every past one. */
-async function syncWeeklyPlayerScores(season: number): Promise<void> {
+async function syncWeeklyPlayerScores(
+  season: number,
+): Promise<{ ok: boolean; playerCount: number; weeksSynced: number; error?: string }> {
   const db = await getDb();
   try {
     const pool = await fetchTopPlayerPool(season, 400);
     const statements: InStatement[] = [
       { sql: 'DELETE FROM weekly_player_scores WHERE season = ?', args: [season] },
     ];
+    const weeksSeen = new Set<number>();
     for (const p of pool) {
       for (const [week, points] of p.weeklyPoints) {
+        weeksSeen.add(week);
         statements.push({
           sql: `INSERT INTO weekly_player_scores (season, week, player_id, full_name, position, pro_team, points, team_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -342,12 +351,17 @@ async function syncWeeklyPlayerScores(season: number): Promise<void> {
       }
     }
     if (statements.length > 1) await db.batch(statements, 'write');
+    return { ok: true, playerCount: pool.length, weeksSynced: weeksSeen.size };
   } catch (err) {
-    console.warn(`[sync] weekly player scores unavailable for ${season}:`, (err as Error).message);
+    const message = (err as Error).message;
+    console.warn(`[sync] weekly player scores unavailable for ${season}:`, message);
+    return { ok: false, playerCount: 0, weeksSynced: 0, error: message };
   }
 }
 
-export async function syncSeason(season: number): Promise<void> {
+export async function syncSeason(
+  season: number,
+): Promise<{ weeklyScores?: { ok: boolean; playerCount: number; weeksSynced: number; error?: string } }> {
   const league = await fetchLeagueSnapshot(
     season,
     ['mTeam', 'mStandings', 'mSettings', 'mMatchupScore'],
@@ -357,8 +371,10 @@ export async function syncSeason(season: number): Promise<void> {
   await syncSeasonCore(season, league);
   await syncDraftAndTransactions(season);
   if (season === getCurrentSeasonYear()) {
-    await syncWeeklyPlayerScores(season);
+    const weeklyScores = await syncWeeklyPlayerScores(season);
+    return { weeklyScores };
   }
+  return {};
 }
 
 export async function syncAll(options: { forceSeason?: number } = {}): Promise<SyncSummary> {
@@ -371,8 +387,8 @@ export async function syncAll(options: { forceSeason?: number } = {}): Promise<S
 
   for (const season of seasons) {
     try {
-      await syncSeason(season);
-      results.push({ season, ok: true });
+      const { weeklyScores } = await syncSeason(season);
+      results.push({ season, ok: true, weeklyScores });
     } catch (err) {
       results.push({ season, ok: false, error: (err as Error).message });
     }
