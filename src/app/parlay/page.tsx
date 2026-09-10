@@ -5,6 +5,12 @@ import { ParlayWeekView, type LowScorer, type ParlayTeam } from '@/components/Pa
 
 export const dynamic = 'force-dynamic';
 
+// Week 1 has no prior week in a new season to fall back on, so it's pinned
+// to last season's last-place finisher by name rather than computed. Every
+// week after that is automatic: whoever scored lowest the week before.
+const WEEK1_HARDCODE_TEAM_NAME = "'22, '24 League Champion";
+const WEEK1_HARDCODE_DETAIL = 'Last place, 2025 season';
+
 export default async function ParlayPage() {
   if (!(await hasAnyData())) {
     return <EmptyState />;
@@ -55,12 +61,33 @@ export default async function ParlayPage() {
           ownerId: t?.owner_id ?? '',
           teamName: t?.team_name ?? `Team ${s.teamId}`,
           logoUrl: t?.logo_url ?? null,
-          score: min,
+          detail: `${min.toFixed(1)} pts`,
         };
       });
   }
 
-  const defaultWeek = scoredWeeks.length > 0 ? scoredWeeks[scoredWeeks.length - 1] : weeks[weeks.length - 1];
+  // The bet for week N is on whoever scored lowest in week N-1 — except week
+  // 1, which has no prior week this season to look back on.
+  const week1Team = teams.find((t) => t.team_name.trim().toLowerCase() === WEEK1_HARDCODE_TEAM_NAME.toLowerCase());
+  const onTheHookByWeek: Record<number, LowScorer[]> = {};
+  for (const week of weeks) {
+    if (week === 1) {
+      onTheHookByWeek[1] = week1Team
+        ? [
+            {
+              ownerId: week1Team.owner_id,
+              teamName: week1Team.team_name,
+              logoUrl: week1Team.logo_url,
+              detail: WEEK1_HARDCODE_DETAIL,
+            },
+          ]
+        : [];
+    } else {
+      onTheHookByWeek[week] = lowestByWeek[week - 1] ?? [];
+    }
+  }
+
+  const defaultWeek = scoredWeeks.length > 0 ? Math.min(scoredWeeks[scoredWeeks.length - 1] + 1, maxWeek) : 1;
 
   const picksByWeek: Record<number, Record<string, string>> = {};
   await Promise.all(
@@ -84,7 +111,7 @@ export default async function ParlayPage() {
         weeks={weeks}
         defaultWeek={defaultWeek}
         teams={parlayTeams}
-        lowestByWeek={lowestByWeek}
+        onTheHookByWeek={onTheHookByWeek}
         picksByWeek={picksByWeek}
       />
     </div>
@@ -96,8 +123,9 @@ function Header({ season }: { season: number }) {
     <div>
       <h1 className="text-2xl font-extrabold">{season} Parlay Picks</h1>
       <p className="max-w-2xl text-sm text-muted">
-        Whoever scores lowest in a week owes the group $5 parlay. Everyone drops their own leg below —
-        no login here, so just type your pick into your own row.
+        Each week&apos;s $5 parlay is on whoever scored lowest the week before (Week 1 falls to last
+        season&apos;s last-place finisher, since there&apos;s no prior week yet). Everyone drops their own leg
+        below — no login here, so just type your pick into your own row.
       </p>
     </div>
   );

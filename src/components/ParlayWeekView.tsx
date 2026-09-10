@@ -12,7 +12,8 @@ export interface ParlayTeam {
 }
 
 export interface LowScorer extends ParlayTeam {
-  score: number;
+  /** Why they're on the hook — e.g. "80.2 pts" or "Last place, 2025 season". */
+  detail: string;
 }
 
 export function ParlayWeekView({
@@ -20,18 +21,18 @@ export function ParlayWeekView({
   weeks,
   defaultWeek,
   teams,
-  lowestByWeek,
+  onTheHookByWeek,
   picksByWeek,
 }: {
   season: number;
   weeks: number[];
   defaultWeek: number;
   teams: ParlayTeam[];
-  lowestByWeek: Record<number, LowScorer[]>;
+  onTheHookByWeek: Record<number, LowScorer[]>;
   picksByWeek: Record<number, Record<string, string>>;
 }) {
   const [week, setWeek] = useState(defaultWeek);
-  const lowest = lowestByWeek[week] ?? [];
+  const lowest = onTheHookByWeek[week] ?? [];
 
   return (
     <div className="flex flex-col gap-4">
@@ -67,7 +68,7 @@ export function ParlayWeekView({
                   <span className="font-semibold">
                     <OwnerLink ownerId={l.ownerId}>{l.teamName}</OwnerLink>
                   </span>
-                  <span className="text-xs text-muted">{l.score.toFixed(1)} pts</span>
+                  <span className="text-xs text-muted">{l.detail}</span>
                 </span>
               ))}
             </div>
