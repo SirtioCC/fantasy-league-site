@@ -119,8 +119,22 @@ CREATE TABLE IF NOT EXISTS weekly_player_scores (
   PRIMARY KEY (season, week, player_id)
 );
 
+-- One row per (season, week, owner) holding that owner's typed-in gambling
+-- pick for the week's group parlay. User-entered content, not synced from
+-- ESPN — there's no login on this site, so ownership is just "whichever row
+-- of the table you typed into," not enforced server-side.
+CREATE TABLE IF NOT EXISTS weekly_picks (
+  season INTEGER NOT NULL,
+  week INTEGER NOT NULL,
+  owner_id TEXT NOT NULL,
+  pick_text TEXT NOT NULL DEFAULT '',
+  updated_at TEXT,
+  PRIMARY KEY (season, week, owner_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_teams_owner ON teams (owner_id);
 CREATE INDEX IF NOT EXISTS idx_weekly_player_scores_week ON weekly_player_scores (season, week, points DESC);
+CREATE INDEX IF NOT EXISTS idx_weekly_picks_week ON weekly_picks (season, week);
 CREATE INDEX IF NOT EXISTS idx_matchups_season_week ON matchups (season, week);
 CREATE INDEX IF NOT EXISTS idx_standings_season ON standings (season);
 CREATE INDEX IF NOT EXISTS idx_draft_season ON draft_picks (season);

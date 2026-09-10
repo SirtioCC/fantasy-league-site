@@ -257,3 +257,30 @@ export async function getPlayersMap(season: number): Promise<Map<number, PlayerR
   const rows = await all<PlayerRow>('SELECT * FROM players WHERE season = ?', [season]);
   return new Map(rows.map((r) => [r.player_id, r]));
 }
+
+export interface WeeklyPickRow {
+  season: number;
+  week: number;
+  owner_id: string;
+  pick_text: string;
+  updated_at: string | null;
+}
+
+export function getWeeklyPicks(season: number, week: number): Promise<WeeklyPickRow[]> {
+  return all<WeeklyPickRow>('SELECT * FROM weekly_picks WHERE season = ? AND week = ?', [season, week]);
+}
+
+/** Saves one owner's parlay pick for a week — user-entered, editable anytime. */
+export async function upsertWeeklyPick(
+  season: number,
+  week: number,
+  ownerId: string,
+  pickText: string,
+): Promise<void> {
+  const db = await getDb();
+  await db.execute({
+    sql: `INSERT INTO weekly_picks (season, week, owner_id, pick_text, updated_at) VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(season, week, owner_id) DO UPDATE SET pick_text = excluded.pick_text, updated_at = excluded.updated_at`,
+    args: [season, week, ownerId, pickText, new Date().toISOString()],
+  });
+}

@@ -8,6 +8,7 @@ import { SyncButton } from './SyncButton';
 const LINKS = [
   { href: '/', label: 'Dashboard' },
   { href: '/top-scorers', label: 'Top Scorers' },
+  { href: '/parlay', label: 'Parlay Picks' },
   { href: '/standings', label: 'All-Time Standings' },
   { href: '/power-rankings', label: 'Power Rankings' },
   { href: '/luck', label: 'Luck Analysis' },
