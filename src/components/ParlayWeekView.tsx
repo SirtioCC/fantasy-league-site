@@ -72,7 +72,7 @@ export function ParlayWeekView({
                 </span>
               ))}
             </div>
-            <p className="text-xs text-muted">Owes the $5 parlay this week.</p>
+            <p className="text-xs text-muted">Owes the $10 parlay this week.</p>
           </>
         )}
       </div>

@@ -123,7 +123,7 @@ function Header({ season }: { season: number }) {
     <div>
       <h1 className="text-2xl font-extrabold">{season} Parlay Picks</h1>
       <p className="max-w-2xl text-sm text-muted">
-        Each week&apos;s $5 parlay is on whoever scored lowest the week before (Week 1 falls to last
+        Each week&apos;s $10 parlay is on whoever scored lowest the week before (Week 1 falls to last
         season&apos;s last-place finisher, since there&apos;s no prior week yet). Everyone drops their own leg
         below — no login here, so just type your pick into your own row.
       </p>
