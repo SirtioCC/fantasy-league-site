@@ -30,3 +30,11 @@ jobs:
             --retry 2 --retry-delay 10 \
             -H "Authorization: Bearer ${CRON_SECRET}" \
             "https://oakwoodffl.vercel.app/api/cron/sync?current=1"
+  keepalive:
+    # GitHub disables scheduled workflows after 60 days with no repo activity.
+    # This re-enables the workflow via the API to reset that timer.
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: liskin/gh-workflow-keepalive@v1
