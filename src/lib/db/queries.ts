@@ -284,31 +284,3 @@ export async function upsertWeeklyPick(
     args: [season, week, ownerId, pickText, new Date().toISOString()],
   });
 }
-
-export interface ParlayResultRow {
-  season: number;
-  week: number;
-  owner_id: string;
-  wins: number;
-  losses: number;
-}
-
-export function getParlayResults(season: number): Promise<ParlayResultRow[]> {
-  return all<ParlayResultRow>('SELECT season, week, owner_id, wins, losses FROM parlay_results WHERE season = ?', [season]);
-}
-
-/** Saves how many of an owner's parlay legs won/lost in a given week. */
-export async function upsertParlayResult(
-  season: number,
-  week: number,
-  ownerId: string,
-  wins: number,
-  losses: number,
-): Promise<void> {
-  const db = await getDb();
-  await db.execute({
-    sql: `INSERT INTO parlay_results (season, week, owner_id, wins, losses, updated_at) VALUES (?, ?, ?, ?, ?, ?)
-          ON CONFLICT(season, week, owner_id) DO UPDATE SET wins = excluded.wins, losses = excluded.losses, updated_at = excluded.updated_at`,
-    args: [season, week, ownerId, wins, losses, new Date().toISOString()],
-  });
-}

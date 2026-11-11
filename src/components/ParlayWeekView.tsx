@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { OwnerLink } from './OwnerLink';
 import { TeamLogo } from './TeamLogo';
-import { savePick, saveResult } from '@/app/parlay/actions';
+import { savePick } from '@/app/parlay/actions';
 
 export interface ParlayTeam {
   ownerId: string;
@@ -12,12 +12,9 @@ export interface ParlayTeam {
 }
 
 export interface ParlayRecord {
-  /** Season-to-date legs won/lost through the viewed week. */
+  /** Season legs won/lost through the week before the viewed week. */
   wins: number;
   losses: number;
-  /** Legs won/lost in the viewed week alone (what the inputs edit). */
-  weekWins: number;
-  weekLosses: number;
 }
 
 export interface LowScorer extends ParlayTeam {
@@ -95,7 +92,6 @@ export function ParlayWeekView({
             <tr>
               <th>Owner</th>
               <th>Pick</th>
-              {records && <th>Legs W / L</th>}
               <th></th>
             </tr>
           </thead>
@@ -131,8 +127,7 @@ function PickRow({
   record?: ParlayRecord;
 }) {
   const [text, setText] = useState(initialText);
-  const [weekWins, setWeekWins] = useState(record?.weekWins ?? 0);
-  const [weekLosses, setWeekLosses] = useState(record?.weekLosses ?? 0);
+
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -162,29 +157,6 @@ function PickRow({
           className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
         />
       </td>
-      {record && (
-        <td data-label="Legs W / L">
-          <span className="flex items-center justify-end gap-1 sm:justify-start">
-            <LegInput
-              label="Legs won"
-              value={weekWins}
-              onChange={(v) => {
-                setWeekWins(v);
-                setSaved(false);
-              }}
-            />
-            <span className="text-muted">/</span>
-            <LegInput
-              label="Legs lost"
-              value={weekLosses}
-              onChange={(v) => {
-                setWeekLosses(v);
-                setSaved(false);
-              }}
-            />
-          </span>
-        </td>
-      )}
       <td data-label="">
         <button
           type="button"
@@ -192,7 +164,6 @@ function PickRow({
           onClick={() =>
             startTransition(async () => {
               await savePick(season, week, team.ownerId, text);
-              if (record) await saveResult(season, week, team.ownerId, weekWins, weekLosses);
               setSaved(true);
             })
           }
@@ -205,17 +176,3 @@ function PickRow({
   );
 }
 
-function LegInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
-  return (
-    <input
-      type="number"
-      inputMode="numeric"
-      min={0}
-      max={10}
-      aria-label={label}
-      value={value}
-      onChange={(e) => onChange(Math.max(0, Math.min(10, Number(e.target.value) || 0)))}
-      className="w-12 rounded-lg border border-border bg-surface px-2 py-1.5 text-center text-sm"
-    />
-  );
-}

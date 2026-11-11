@@ -1,6 +1,6 @@
 import { hasAnyData } from '@/lib/db';
-import { getLatestSeason, getMatchupsForSeason, getParlayResults, getTeamsForSeason, getWeeklyPicks } from '@/lib/db/queries';
-import { getParlayBaseline, PARLAY_RESULTS_START_WEEK } from '@/lib/parlayBaseline';
+import { getLatestSeason, getMatchupsForSeason, getTeamsForSeason, getWeeklyPicks } from '@/lib/db/queries';
+import { getParlayRecord, PARLAY_RECORDS_START_WEEK } from '@/lib/parlayBaseline';
 import { EmptyState } from '@/components/EmptyState';
 import { ParlayWeekView, type LowScorer, type ParlayRecord, type ParlayTeam } from '@/components/ParlayWeekView';
 
@@ -98,36 +98,14 @@ export default async function ParlayPage() {
     }),
   );
 
-  // Records show from Week 9 on: hand-graded baseline through Week 8, plus
-  // every result entered on this page from Week 9 through the viewed week.
-  const results = await getParlayResults(latestSeason.season);
-  const resultsByWeek: Record<number, Record<string, { wins: number; losses: number }>> = {};
-  for (const r of results) {
-    (resultsByWeek[r.week] ??= {})[r.owner_id] = { wins: Number(r.wins), losses: Number(r.losses) };
-  }
+  // Records show from Week 9 on: each week's badge is the record through the
+  // previous week, graded by hand in src/lib/parlayBaseline.ts.
   const recordsByWeek: Record<number, Record<string, ParlayRecord>> = {};
   for (const week of weeks) {
-    if (week < PARLAY_RESULTS_START_WEEK) continue;
-    recordsByWeek[week] = {};
-    for (const t of teams) {
-      const base = getParlayBaseline(latestSeason.season, t.team_name);
-      let wins = base.wins;
-      let losses = base.losses;
-      for (let w = PARLAY_RESULTS_START_WEEK; w <= week; w++) {
-        const r = resultsByWeek[w]?.[t.owner_id];
-        if (r) {
-          wins += r.wins;
-          losses += r.losses;
-        }
-      }
-      const thisWeek = resultsByWeek[week]?.[t.owner_id];
-      recordsByWeek[week][t.owner_id] = {
-        wins,
-        losses,
-        weekWins: thisWeek?.wins ?? 0,
-        weekLosses: thisWeek?.losses ?? 0,
-      };
-    }
+    if (week < PARLAY_RECORDS_START_WEEK) continue;
+    recordsByWeek[week] = Object.fromEntries(
+      teams.map((t) => [t.owner_id, getParlayRecord(latestSeason.season, week, t.team_name)]),
+    );
   }
 
   const parlayTeams: ParlayTeam[] = teams.map((t) => ({
