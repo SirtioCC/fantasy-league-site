@@ -132,6 +132,20 @@ CREATE TABLE IF NOT EXISTS weekly_picks (
   PRIMARY KEY (season, week, owner_id)
 );
 
+-- One row per (season, week, owner) holding how many of that owner's parlay
+-- legs hit (wins) and missed (losses) that week. Entered by hand on the
+-- Parlay Picks page. Records before PARLAY_RESULTS_START_WEEK are a fixed
+-- baseline in src/lib/parlayBaseline.ts, not rows here.
+CREATE TABLE IF NOT EXISTS parlay_results (
+  season INTEGER NOT NULL,
+  week INTEGER NOT NULL,
+  owner_id TEXT NOT NULL,
+  wins INTEGER NOT NULL DEFAULT 0,
+  losses INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT,
+  PRIMARY KEY (season, week, owner_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_teams_owner ON teams (owner_id);
 CREATE INDEX IF NOT EXISTS idx_weekly_player_scores_week ON weekly_player_scores (season, week, points DESC);
 CREATE INDEX IF NOT EXISTS idx_weekly_picks_week ON weekly_picks (season, week);
