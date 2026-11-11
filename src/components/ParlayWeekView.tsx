@@ -139,7 +139,7 @@ function PickRow({
           <OwnerLink ownerId={team.ownerId}>{team.teamName}</OwnerLink>
           {record && (
             <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-semibold tabular-nums text-muted">
-              {record.wins}-{record.losses}
+              (Parlay Picks Record {record.wins}-{record.losses})
             </span>
           )}
         </span>
